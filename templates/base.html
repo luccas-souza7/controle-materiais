@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Controle de Materiais{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<script>(function(){ const t=localStorage.getItem('cm-theme')||'light'; document.documentElement.setAttribute('data-theme',t); })();</script>
+</head>
+<body>
+
+{% if session.user %}
+
+<!-- Mobile overlay + hamburger -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menu">
+  <i data-lucide="menu" size="22"></i>
+</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <i data-lucide="package" class="logo-icon spin-hover"></i>
+    Controle Materiais
+  </div>
+
+  <ul class="nav-menu">
+    <li>
+      <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint=='dashboard' %}active{% endif %}">
+        <i data-lucide="layout-dashboard" size="20"></i> Dashboard
+      </a>
+    </li>
+    {% if pode_lancar() %}
+    <li>
+      <a href="{{ url_for('novo_lancamento') }}" class="nav-item {% if request.endpoint=='novo_lancamento' %}active{% endif %}">
+        <i data-lucide="plus-circle" size="20"></i> Novo Lançamento
+      </a>
+    </li>
+    {% endif %}
+    <li>
+      <a href="{{ url_for('lancamentos') }}" class="nav-item {% if request.endpoint=='lancamentos' %}active{% endif %}">
+        <i data-lucide="list" size="20"></i> Lançamentos
+      </a>
+    </li>
+    <li>
+      <a href="{{ url_for('saldo_caixas') }}" class="nav-item {% if request.endpoint=='saldo_caixas' %}active{% endif %}">
+        <i data-lucide="box" size="20"></i> Caixas
+      </a>
+    </li>
+    {% if pode('dre_ver') %}
+    <li>
+      <a href="{{ url_for('dre_lista') }}" class="nav-item {% if request.endpoint in ('dre_lista','dre_detalhe') %}active{% endif %}">
+        <i data-lucide="file-text" size="20"></i> Controle DRE
+        {% if ticker.dre_pend > 0 %}<span class="nav-badge">{{ ticker.dre_pend }}</span>{% endif %}
+      </a>
+    </li>
+    {% endif %}
+    <li>
+      <a href="{{ url_for('saldo_carrinhos') }}" class="nav-item {% if request.endpoint=='saldo_carrinhos' %}active{% endif %}">
+        <i data-lucide="shopping-cart" size="20"></i> Carrinhos
+      </a>
+    </li>
+    <li>
+      <a href="{{ url_for('estoque_cd') }}" class="nav-item {% if request.endpoint=='estoque_cd' %}active{% endif %}">
+        <i data-lucide="warehouse" size="20"></i> Estoque CD
+      </a>
+    </li>
+    {% if pode('usuarios_gerenciar') %}
+    <li>
+      <a href="{{ url_for('usuarios') }}" class="nav-item {% if request.endpoint in ('usuarios','novo_usuario','editar_usuario') %}active{% endif %}">
+        <i data-lucide="users" size="20"></i> Usuários
+      </a>
+    </li>
+    {% endif %}
+    {% if pode('cadastros_editar') %}
+    <li>
+      <a href="{{ url_for('inclusoes') }}" class="nav-item {% if request.endpoint=='inclusoes' %}active{% endif %}">
+        <i data-lucide="settings" size="20"></i> Cadastros
+      </a>
+    </li>
+    {% endif %}
+    {% if pode('logs_ver') %}
+    <li>
+      <a href="{{ url_for('logs') }}" class="nav-item {% if request.endpoint=='logs' %}active{% endif %}">
+        <i data-lucide="scroll-text" size="20"></i> Logs
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+
+  <div class="sidebar-footer">
+    <a href="{{ url_for('ajuda') }}" class="nav-item {% if request.endpoint=='ajuda' %}active{% endif %}">
+      <i data-lucide="help-circle" size="20"></i> Ajuda
+    </a>
+    <button class="nav-item" onclick="toggleTheme()" style="border:none;width:100%;text-align:left;cursor:pointer;background:none;">
+      <i data-lucide="moon" size="20" id="themeIcon"></i>
+      <span id="themeLabel">Modo Escuro</span>
+    </button>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">{{ session.user.nome[0]|upper }}</div>
+      <div style="min-width:0">
+        <div class="sidebar-user-name">{{ session.user.nome }}</div>
+        <div class="sidebar-user-role">{{ session.user.perfil }}</div>
+      </div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="nav-item" style="color:var(--danger-text)">
+      <i data-lucide="log-out" size="20"></i> Sair
+    </a>
+    <div class="developer-credit">Desenvolvido por Luccas Souza</div>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="toggleTheme()" aria-label="Alternar Tema">
+        <i data-lucide="moon" size="20" id="topThemeIcon"></i>
+      </button>
+      <div class="user-profile">
+        <div class="avatar">{{ session.user.nome[0]|upper }}</div>
+        <span style="font-size:.85rem;font-weight:500;color:var(--text-secondary)">{{ session.user.nome }}</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="ticker-wrap">
+    <div class="ticker-content">
+      {% if ticker.dre_pend > 0 %}
+      <span class="ticker-item"><span class="ticker-danger">⚠ DRE</span> <strong>{{ ticker.dre_pend }}</strong> pendência(s)</span>
+      <span class="ticker-item">•</span>
+      {% endif %}
+      <span class="ticker-item"><i data-lucide="box" size="13"></i> <strong>Saldo CD:</strong> {{ ticker.saldo_caixas }} caixas</span>
+      <span class="ticker-item">•</span>
+      {% if ticker.lojas_pend > 0 %}
+      <span class="ticker-item"><span class="ticker-warn">! PENDÊNCIA</span> <strong>{{ ticker.lojas_pend }}</strong> loja(s)</span>
+      {% else %}
+      <span class="ticker-item"><span class="ticker-success">✓ OK</span> Caixas em dia</span>
+      {% endif %}
+      <span class="ticker-item">•</span>
+      {% if ticker.emp_pend > 0 %}
+      <span class="ticker-item"><span class="ticker-info">↩ EMPR.</span> <strong>{{ ticker.emp_pend }}</strong> loja(s)</span>
+      <span class="ticker-item">•</span>
+      {% endif %}
+      {% for c in ticker.carr_prontos %}
+      <span class="ticker-item"><i data-lucide="shopping-cart" size="13"></i> <strong>{{ c[0][:20] }}:</strong> <span class="ticker-success">{{ c[1] }} pronto(s)</span></span>
+      <span class="ticker-item">•</span>
+      {% endfor %}
+      <span class="ticker-item" style="opacity:.4;font-size:.72rem">Controle de Materiais — CD &amp; Lojas</span>
+    </div>
+  </div>
+
+  <div class="page-wrap">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+lucide.createIcons();
+
+// ── Sidebar mobile ──────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+  document.body.classList.toggle('no-scroll');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+  document.body.classList.remove('no-scroll');
+}
+document.querySelectorAll('.nav-item').forEach(function(el) {
+  el.addEventListener('click', function() {
+    if (window.innerWidth < 768) closeSidebar();
+  });
+});
+
+// ── Theme ───────────────────────────────────────────────────
+function toggleTheme() {
+  var cur  = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('cm-theme', next);
+  _applyThemeIcons(next);
+}
+function _applyThemeIcons(t) {
+  var isDark = t === 'dark';
+  ['themeIcon', 'topThemeIcon'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+  });
+  var lbl = document.getElementById('themeLabel');
+  if (lbl) lbl.textContent = isDark ? 'Modo Claro' : 'Modo Escuro';
+  lucide.createIcons();
+}
+// Apply on load
+_applyThemeIcons(localStorage.getItem('cm-theme') || 'light');
+</script>
+</body>
+</html>

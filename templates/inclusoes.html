@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Inclusões{% endblock %}
+{% block page_title %}Inclusões — Lojas e Itens{% endblock %}
+{% block content %}
+
+{% if ok_msg %}
+<div class="alert alert-ok"><i data-lucide="check-circle" size="16"></i> {{ ok_msg }}</div>
+{% endif %}
+{% if erro %}
+<div class="alert alert-error"><i data-lucide="alert-circle" size="16"></i> {{ erro }}</div>
+{% endif %}
+
+<div class="content-grid" style="grid-template-columns:1fr 1fr;gap:24px">
+
+  <!-- ── LOJAS ─────────────────────────────────────── -->
+  <div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <h2 class="card-title"><i data-lucide="store" size="16" style="margin-right:8px;vertical-align:middle"></i>Adicionar Loja</h2>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="acao" value="add_loja">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Número da Loja <span class="req">*</span></label>
+              <input type="text" name="num_loja" required class="form-input"
+                     placeholder="Ex: 37"
+                     pattern="[0-9]+" inputmode="numeric"
+                     oninput="this.value=this.value.replace(/[^0-9]/g,'');montarNome()">
+              <span class="form-hint">Somente números</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nome / Cidade <span class="req">*</span></label>
+              <input type="text" name="nome_loja" required class="form-input"
+                     placeholder="Ex: CURITIBA 2"
+                     oninput="this.value=this.value.toUpperCase();montarNome()">
+              <span class="form-hint">Será salvo em maiúsculas</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pré-visualização</label>
+            <input type="text" id="preview-loja" class="form-input" readonly
+                   placeholder="LOJA XX - NOME DA CIDADE"
+                   style="background:var(--bg-hover);font-weight:600;color:var(--brand-primary)">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary"><i data-lucide="plus" size="15"></i> Adicionar Loja</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Lojas Cadastradas</h2>
+        <span style="font-size:.78rem;color:var(--text-secondary)">{{ lojas_db | length }} loja(s)</span>
+      </div>
+      <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Nome</th><th class="td-center">Status</th><th class="td-center">Ação</th></tr>
+          </thead>
+          <tbody>
+            {% for loja in lojas_db %}
+            <tr>
+              <td class="td-mono">{{ loja[0] }}</td>
+              <td style="font-size:.83rem">{{ loja[1] }}</td>
+              <td class="td-center">
+                {% if loja[2] %}
+                <span class="badge badge-success"><i data-lucide="check" size="11"></i> Ativa</span>
+                {% else %}
+                <span class="badge badge-neutral">Inativa</span>
+                {% endif %}
+              </td>
+              <td class="td-center">
+                {% if meu_perfil == 'dev' %}
+                <form method="POST" onsubmit="return confirmarExclusao(this,'⚠️ Deseja realmente desativar a loja {{ loja[1] }}?\n\nEssa ação pode afetar lançamentos existentes.')">
+                  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                  <input type="hidden" name="acao" value="del_loja">
+                  <input type="hidden" name="loja_id" value="{{ loja[0] }}">
+                  <button type="submit" class="btn-del"><i data-lucide="trash-2" size="13"></i></button>
+                </form>
+                {% else %}
+                <span style="font-size:.72rem;color:var(--text-secondary)">só DEV</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="td-empty">⚠️ Nenhuma loja cadastrada aqui ainda. O sistema usa a lista padrão de 31 lojas. Ao adicionar lojas aqui, elas passam a ser usadas no sistema.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ITENS ─────────────────────────────────────── -->
+  <div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <h2 class="card-title"><i data-lucide="package" size="16" style="margin-right:8px;vertical-align:middle"></i>Adicionar Item</h2>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="acao" value="add_item">
+          <div class="form-group">
+            <label class="form-label">Tipo <span class="req">*</span></label>
+            <select name="tipo_item" required class="form-select">
+              <option value="">Selecione...</option>
+              <option value="Caixa">📦 Caixa</option>
+              <option value="Carrinho">🛒 Carrinho</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Código <span class="req">*</span></label>
+            <input type="text" name="codigo_item" required class="form-input"
+                   pattern="[0-9]+" inputmode="numeric"
+                   placeholder="Somente números — ex: 263301"
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <span class="form-hint">Apenas dígitos numéricos</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descrição <span class="req">*</span></label>
+            <input type="text" name="desc_item" required class="form-input"
+                   placeholder="EX: CARRINHO CLIENTE 210 LT"
+                   oninput="this.value=this.value.toUpperCase()">
+            <span class="form-hint">Será salvo automaticamente em maiúsculas</span>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary"><i data-lucide="plus" size="15"></i> Adicionar Item</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Itens Cadastrados</h2>
+        <span style="font-size:.78rem;color:var(--text-secondary)">{{ itens_db | length }} item(ns)</span>
+      </div>
+      <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Tipo</th><th>Código</th><th>Descrição</th><th class="td-center">Status</th><th class="td-center">Ação</th></tr>
+          </thead>
+          <tbody>
+            {% for item in itens_db %}
+            <tr>
+              <td class="td-mono">{{ item[0] }}</td>
+              <td><span class="badge badge-neutral">{{ item[1] }}</span></td>
+              <td class="td-mono">{{ item[2] }}</td>
+              <td style="font-size:.78rem">{{ item[3][:40] }}</td>
+              <td class="td-center">
+                {% if item[4] %}
+                <span class="badge badge-success"><i data-lucide="check" size="11"></i> Ativo</span>
+                {% else %}
+                <span class="badge badge-neutral">Inativo</span>
+                {% endif %}
+              </td>
+              <td class="td-center">
+                {% if meu_perfil == 'dev' %}
+                <form method="POST" onsubmit="return confirmarExclusao(this,'⚠️ Deseja realmente desativar o item:\n{{ item[3][:40] }}?\n\nEssa ação pode afetar lançamentos existentes.')">
+                  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                  <input type="hidden" name="acao" value="del_item">
+                  <input type="hidden" name="item_id" value="{{ item[0] }}">
+                  <button type="submit" class="btn-del"><i data-lucide="trash-2" size="13"></i></button>
+                </form>
+                {% else %}
+                <span style="font-size:.72rem;color:var(--text-secondary)">só DEV</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="td-empty">⚠️ Nenhum item cadastrado aqui ainda. O sistema usa a lista padrão (1 caixa e 12 carrinhos). Ao adicionar itens aqui, eles passam a ser usados no sistema.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="info-box" style="margin-top:16px">
+  <strong>Admin</strong> pode adicionar lojas e itens. &nbsp;
+  <strong>DEV</strong> pode também desativar/excluir. &nbsp;
+  Itens do banco substituem a lista padrão do sistema quando cadastrados.
+</div>
+
+<script>
+lucide.createIcons();
+function montarNome(){
+  const num  = document.querySelector('[name="num_loja"]').value.trim().padStart(2,'0');
+  const nome = document.querySelector('[name="nome_loja"]').value.trim();
+  const prev = document.getElementById('preview-loja');
+  if(num && nome) prev.value = 'LOJA ' + num + ' - ' + nome;
+  else prev.value = '';
+}
+
+// Confirmação fluída de exclusão
+function confirmarExclusao(form, msg){
+  if(confirm(msg)){ form.submit(); }
+  return false;
+}
+</script>
+{% endblock %}

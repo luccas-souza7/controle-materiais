@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Estoque CD{% endblock %}
+{% block page_title %}Estoque CD{% endblock %}
+{% block content %}
+
+<div class="filter-bar">
+  <input type="text" class="search-input" id="filtro-estoque" placeholder="Pesquisar por código ou produto...">
+  <select class="form-select" id="filtro-item-cd" style="width:200px">
+    <option value="">Caixas + Carrinhos</option>
+    <option value="caixa">📦 Somente Caixas</option>
+    <option value="carrinho">🛒 Somente Carrinhos</option>
+  </select>
+  <button class="btn-secondary" onclick="document.getElementById('filtro-estoque').value='';document.getElementById('filtro-item-cd').value='';filtrarEstoque()">
+    <i data-lucide="x" size="15"></i> Limpar
+  </button>
+</div>
+
+<div id="section-caixa">
+  <div class="section-title"><i data-lucide="box" size="14"></i> Caixas</div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th><th>Produto</th>
+            <th class="td-center">Compras</th>
+            <th class="td-center">Retornos</th>
+            <th class="td-center">Enviados</th>
+            <th class="td-center">Perdas CD</th>
+            <th class="td-center">Perdas Lojas</th>
+            <th class="td-center">Saldo CD</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in caixas %}
+          <tr>
+            <td class="td-mono">{{ c[0] }}</td>
+            <td style="font-size:.84rem">{{ c[1] }}</td>
+            <td class="td-center td-ok">{{ c[2] }}</td>
+            <td class="td-center td-ok">{{ c[3] }}</td>
+            <td class="td-center">{{ c[4] }}</td>
+            <td class="td-center td-danger">{{ c[5] }}</td>
+            <td class="td-center">{{ c[6] }}</td>
+            <td class="td-center">
+              <span class="badge {{ 'badge-success' if c[7] > 0 else ('badge-danger' if c[7] < 0 else 'badge-neutral') }}" style="font-size:.85rem">{{ c[7] }}</span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="td-empty">Nenhum lançamento de caixas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="info-box" style="margin-bottom:20px">
+    <strong>Saldo CD</strong> = Compras + Retornos − Enviados − Perdas CD. Perdas na Loja <strong>não</strong> afetam o saldo do CD.
+  </div>
+</div>
+
+<div id="section-carrinho">
+  <div class="section-title"><i data-lucide="shopping-cart" size="14"></i> Carrinhos</div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th><th>Produto</th>
+            <th class="td-center">Receb. Danif.</th>
+            <th class="td-center">Env. Conserto</th>
+            <th class="td-center">Em Conserto</th>
+            <th class="td-center">Voltaram Bons</th>
+            <th class="td-center">Sucata</th>
+            <th class="td-center">Enviados Lojas</th>
+            <th class="td-center">Emprestados</th>
+            <th class="td-center">Ret. Empr.</th>
+            <th class="td-center">Saldo Empr.</th>
+            <th class="td-center" style="color:var(--warning-text)">CD deve Lojas</th>
+            <th class="td-center">Prontos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in carrinhos %}
+          <tr>
+            <td class="td-mono">{{ c[0] }}</td>
+            <td style="font-size:.76rem">{{ c[1][:30] }}</td>
+            <td class="td-center td-danger">{{ c[2] }}</td>
+            <td class="td-center">{{ c[3] }}</td>
+            <td class="td-center">
+              {% if c[4] > 0 %}<span class="badge badge-warning">{{ c[4] }}</span>{% else %}{{ c[4] }}{% endif %}
+            </td>
+            <td class="td-center td-ok">{{ c[5] }}</td>
+            <td class="td-center td-danger">{{ c[6] }}</td>
+            <td class="td-center">{{ c[7] }}</td>
+            <td class="td-center">{{ c[8] }}</td>
+            <td class="td-center td-ok">{{ c[9] }}</td>
+            <td class="td-center">
+              {% if c[10] > 0 %}<span class="badge badge-warning">{{ c[10] }}</span>
+              {% else %}<span class="badge badge-neutral">{{ c[10] }}</span>{% endif %}
+            </td>
+            <td class="td-center">
+              {% set deve = cd_deve_map.get(c[0], 0) %}
+              {% if deve > 0 %}
+              <span class="badge badge-warning" title="CD ainda não enviou este modelo às lojas">{{ deve }}</span>
+              {% else %}
+              <span class="badge badge-success">0</span>
+              {% endif %}
+            </td>
+            <td class="td-center">
+              <span class="badge {{ 'badge-success' if c[11] > 0 else 'badge-neutral' }}" style="font-size:.85rem">{{ c[11] }}</span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="13" class="td-empty">Nenhum lançamento de carrinhos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="info-box">
+    <strong>Em Conserto</strong> = Enviados − Voltaram &nbsp;|&nbsp;
+    <strong>Saldo Empréstimo</strong> = Emprestados − Retornos &nbsp;|&nbsp;
+    <strong>CD deve Lojas</strong> = Recebimentos de lojas ainda não reenviados &nbsp;|&nbsp;
+    <strong>Prontos</strong> = Compras + Recebidos Bons + Voltaram Bons − Enviados − Emprestados − Vendidos
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+function filtrarEstoque(){
+  const txt  = document.getElementById('filtro-estoque').value.toLowerCase();
+  const item = document.getElementById('filtro-item-cd').value;
+  const sc = document.getElementById('section-caixa');
+  const sr = document.getElementById('section-carrinho');
+  if(item === 'caixa')     { sc.style.display=''; sr.style.display='none'; }
+  else if(item==='carrinho'){ sc.style.display='none'; sr.style.display=''; }
+  else { sc.style.display=''; sr.style.display=''; }
+  if(txt){
+    [sc,sr].forEach(sec => {
+      sec.querySelectorAll('tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(txt) ? '' : 'none';
+      });
+    });
+  } else {
+    document.querySelectorAll('tbody tr').forEach(row => row.style.display = '');
+  }
+}
+document.getElementById('filtro-estoque').addEventListener('input', filtrarEstoque);
+document.getElementById('filtro-item-cd').addEventListener('change', filtrarEstoque);
+</script>
+{% endblock %}

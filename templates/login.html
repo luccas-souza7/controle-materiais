@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Controle de Materiais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script>(function(){ const t=localStorage.getItem('cm-theme')||'light'; document.documentElement.setAttribute('data-theme',t); })();</script>
+<style>
+html,body { margin:0; padding:0; height:100%; font-family:'Inter',sans-serif; }
+body { display:block !important; overflow:auto; }
+#vanta-bg { position:fixed; inset:0; z-index:0; }
+.login-wrapper {
+  position:relative; z-index:1;
+  display:flex; align-items:center; justify-content:center;
+  min-height:100vh; padding:24px;
+}
+.login-card {
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.4);
+  box-shadow:0 24px 64px rgba(0,0,0,.18);
+}
+[data-theme="dark"] .login-card {
+  background:rgba(15,23,42,.88);
+  border:1px solid rgba(255,255,255,.08);
+}
+.theme-btn {
+  position:fixed; top:20px; right:20px; z-index:10;
+  background:rgba(255,255,255,.2); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.3); border-radius:8px;
+  padding:8px 14px; cursor:pointer; color:#fff;
+  font-family:'Inter',sans-serif; font-size:.8rem;
+  display:flex; align-items:center; gap:6px; transition:background .2s;
+}
+.theme-btn:hover { background:rgba(255,255,255,.3); }
+</style>
+</head>
+<body>
+
+<div id="vanta-bg"></div>
+
+<button class="theme-btn" onclick="toggleTheme()">
+  <i data-lucide="moon" size="16" id="loginThemeIcon"></i>
+  <span id="loginThemeLabel">Dark</span>
+</button>
+
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-icon">
+      <i data-lucide="package" size="26"></i>
+    </div>
+    <h1 class="login-title">Controle de Materiais</h1>
+    <p class="login-sub">Acesse com sua conta para continuar</p>
+
+    {% if error %}
+    <div class="alert alert-error">
+      <i data-lucide="alert-circle" size="16"></i> {{ error }}
+    </div>
+    {% if 'bloqueada' in error or 'inativa' in error or 'Contate' in error %}
+    <div style="margin-top:12px;background:var(--bg-hover);border:1px solid var(--border-color);border-radius:10px;padding:14px 16px;font-size:.8rem">
+      <div style="font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--text-primary)">
+        <i data-lucide="life-buoy" size="14"></i> Precisa de ajuda?
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;color:var(--text-secondary)">
+        <div>
+          <strong style="color:var(--text-primary)">Desenvolvedor</strong><br>
+          <a href="https://linkedin.com/in/luccas-souza7" target="_blank" style="color:var(--brand-primary);font-weight:600;font-size:.78rem">
+            <i data-lucide="linkedin" size="12" style="vertical-align:middle"></i> Luccas Souza
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <form method="POST">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label">Usuário</label>
+        <input type="text" name="username" required autofocus class="form-input"
+               placeholder="seu.usuario" autocomplete="username" maxlength="100">
+      </div>
+      <div class="form-group" style="margin-bottom:24px">
+        <label class="form-label">Senha</label>
+        <input type="password" name="password" required class="form-input"
+               placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn-primary btn-full" style="font-size:.9rem;padding:.75rem">
+        <i data-lucide="log-in" size="16"></i> Entrar
+      </button>
+    </form>
+
+    <p style="text-align:center;margin-top:32px;font-size:.72rem;color:var(--text-secondary)">
+      Controle de Materiais — Projeto de Portfólio<br>
+      <span style="opacity:.6">Desenvolvido por Luccas Souza</span>
+    </p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
+<script>
+lucide.createIcons();
+
+var VANTA_CFG = {
+  light: { color:0x1a6fd8, waveHeight:18, shininess:50, waveSpeed:0.75, zoom:0.85 },
+  dark:  { color:0x082155, waveHeight:22, shininess:15, waveSpeed:0.55, zoom:0.9  }
+};
+var vantaEffect = null;
+
+function initVanta(t) {
+  if(vantaEffect){ vantaEffect.destroy(); vantaEffect = null; }
+  var c = VANTA_CFG[t] || VANTA_CFG.light;
+  vantaEffect = VANTA.WAVES({
+    el:'#vanta-bg', mouseControls:true, touchControls:true,
+    gyroControls:false, minHeight:200, minWidth:200,
+    scale:1.0, scaleMobile:1.0,
+    color:c.color, waveHeight:c.waveHeight,
+    shininess:c.shininess, waveSpeed:c.waveSpeed, zoom:c.zoom
+  });
+}
+
+function updateThemeUI(t) {
+  var isDark = t === 'dark';
+  var icon = document.getElementById('loginThemeIcon');
+  var lbl  = document.getElementById('loginThemeLabel');
+  if(icon){ icon.setAttribute('data-lucide', isDark?'sun':'moon'); lucide.createIcons(); }
+  if(lbl) lbl.textContent = isDark ? 'Light' : 'Dark';
+}
+
+function toggleTheme() {
+  var cur  = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('cm-theme', next);
+  updateThemeUI(next);
+  initVanta(next);
+}
+
+(function(){
+  var t = localStorage.getItem('cm-theme') || 'light';
+  updateThemeUI(t);
+  initVanta(t);
+})();
+</script>
+</body>
+</html>

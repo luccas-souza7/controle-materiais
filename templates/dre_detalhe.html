@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}DRE — Detalhe #{{ item[0] }}{% endblock %}
+{% block page_title %}Detalhe DRE{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="{{ url_for('dre_lista') }}" class="btn-secondary">
+    <i data-lucide="arrow-left" size="15"></i> Voltar para DRE
+  </a>
+  <span style="font-size:.9rem;color:var(--text-secondary)">Lançamento #{{ item[0] }}</span>
+</div>
+
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);max-width:720px">
+  <div class="kpi-card anim-fade-in">
+    <div class="kpi-header"><span>Qtd Perdida</span><div class="kpi-icon kpi-icon-amber"><i data-lucide="package-minus" size="18"></i></div></div>
+    <div class="kpi-value">{{ item[3] }}</div>
+    <div class="trend-neutral">caixas</div>
+  </div>
+  <div class="kpi-card anim-fade-in" style="animation-delay:.1s">
+    <div class="kpi-header"><span>Valor Abate DRE</span><div class="kpi-icon kpi-icon-red"><i data-lucide="dollar-sign" size="18"></i></div></div>
+    <div class="kpi-value" style="font-size:1.4rem">R$ {{ '%.2f'|format(item[4]) }}</div>
+    <div class="trend-neutral">R$ 440 × {{ item[3] }}</div>
+  </div>
+  <div class="kpi-card anim-fade-in" style="animation-delay:.2s">
+    <div class="kpi-header">
+      <span>Status</span>
+      <div class="kpi-icon {{ 'kpi-icon-green' if item[5] else 'kpi-icon-red' }}">
+        <i data-lucide="{{ 'check-circle' if item[5] else 'bell-ring' }}" size="18"></i>
+      </div>
+    </div>
+    <div class="kpi-value" style="font-size:1.6rem">{{ '✅' if item[5] else '❌' }}</div>
+    <div class="trend-{{ 'up' if item[5] else 'down' }}">{{ 'notificado' if item[5] else 'pendente' }}</div>
+  </div>
+</div>
+
+<div class="content-grid" style="max-width:900px">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="info" size="16" style="margin-right:8px;vertical-align:middle"></i>Informações do Registro</h2>
+    </div>
+    <div class="card-body">
+      <table>
+        {% for label, value in [
+          ('Data/Hora', item[1]),
+          ('Loja', item[2]),
+          ('Responsável', item[8]),
+          ('Obs. do Lançamento', item[7] or '—'),
+        ] %}
+        <tr>
+          <td style="padding:.7rem 0;color:var(--text-secondary);font-size:.8rem;width:45%;border-bottom:1px solid var(--border-color)">{{ label }}</td>
+          <td style="padding:.7rem 0;font-size:.85rem;font-weight:500;border-bottom:1px solid var(--border-color)">{{ value }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="bell" size="16" style="margin-right:8px;vertical-align:middle"></i>Notificação DRE</h2>
+    </div>
+    <div class="card-body">
+      {% if readonly %}
+      <div class="info-box">
+        <strong>Notificado:</strong> {{ '✅ Sim' if item[5] else '❌ Não' }}<br>
+        <strong>Observação:</strong> {{ item[6] or '—' }}
+      </div>
+      {% else %}
+      <form method="POST">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label class="form-label">Controladoria foi notificada? <span class="req">*</span></label>
+          <select name="dre_notificado" class="form-select" required>
+            <option value="N" {{ 'selected' if not item[5] }}>❌ Não ainda</option>
+            <option value="S" {{ 'selected' if item[5] }}>✅ Sim, notificada</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observação / Comprovante</label>
+          <textarea name="dre_notif_obs" class="form-input" rows="4" placeholder="Ex: E-mail enviado à controladoria em...">{{ item[6] }}</textarea>
+        </div>
+        <div class="form-actions">
+          <a href="{{ url_for('dre_lista') }}" class="btn-secondary">Cancelar</a>
+          <button type="submit" class="btn-primary"><i data-lucide="save" size="15"></i> Salvar</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+{% endblock %}

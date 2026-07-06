@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Ajuda{% endblock %}
+{% block page_title %}Ajuda e Suporte{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Central de Ajuda</h2>
+    <input type="text" class="search-input" id="help-search" placeholder="Pesquisar tópico..." oninput="filterHelp()" style="max-width:280px">
+  </div>
+  <div class="card-body">
+
+    <div class="help-nav">
+      <div class="help-nav-item active" data-help="help-faq">FAQ</div>
+      <div class="help-nav-item" data-help="help-movimentos">Movimentos</div>
+      <div class="help-nav-item" data-help="help-dicas">Dicas</div>
+      <div class="help-nav-item" data-help="help-suporte">Suporte</div>
+      <div class="help-nav-item" data-help="help-historico">Atualizações</div>
+    </div>
+
+    <!-- FAQ -->
+    <div id="help-faq" class="help-section active">
+      <h3>Perguntas Frequentes</h3>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> O que é o sistema de Controle de Materiais?</summary><p>Sistema para rastrear movimentação de <strong>Caixas</strong> e <strong>Carrinhos</strong> entre o Centro de Distribuição e as lojas de uma rede varejista. Registra envios, retornos, empréstimos, perdas e consertos.</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> Como registrar um novo lançamento?</summary><p>Clique em <strong>Novo Lançamento</strong> na barra lateral. Selecione o item, modelo, tipo de movimento e quantidade. O sistema mostra o saldo disponível automaticamente antes de salvar.</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> Por que aparece erro de saldo insuficiente?</summary><p>O sistema valida cada movimentação contra o estoque real. Se tentar enviar mais do que existe no CD, o lançamento é bloqueado. Verifique a aba <strong>Estoque CD</strong> para conferir os saldos.</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> Qual a diferença entre Envio e Empréstimo?</summary><p><strong>Envio CD→Loja</strong>: transferência permanente. <strong>Empréstimo CD→Loja</strong>: temporário, a loja fica devendo devolução. O saldo aparece na aba <strong>Carrinhos</strong>.</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> O que é o DRE?</summary><p>Quando uma caixa é perdida na loja (<strong>Perda na Loja</strong>), é gerado um desconto de R$ 440,00 por unidade no DRE da loja. A aba <strong>Controle DRE</strong> lista todas as perdas e indica se a controladoria já foi notificada.</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> Como funciona o fluxo de conserto?</summary><p>1) Receber carrinho danificado da loja: <strong>Recebimento Loja→CD</strong> (Danificado). 2) Enviar ao fornecedor: <strong>Envio Conserto</strong>. 3) Fornecedor devolve: <strong>Volta Conserto</strong> (Bom Estado ou Sucata).</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> Como excluir um lançamento?</summary><p>Na aba <strong>Lançamentos</strong>, clique no botão ✕ na linha. Disponível apenas para quem tem a permissão <strong>"Excluir lançamentos"</strong> marcada na sua ficha de usuário.</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> Minha conta foi bloqueada, o que faço?</summary><p>Após 5 tentativas de senha erradas a conta é bloqueada. Contate um administrador ou dev para desbloquear em <strong>Usuários → Editar</strong>.</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> Posso usar em dois dispositivos ao mesmo tempo?</summary><p>Não. Ao fazer login em outro navegador ou dispositivo, a sessão anterior é encerrada automaticamente por segurança.</p></details>
+      <details class="help-item"><summary><i data-lucide="help-circle" size="16"></i> Quem pode ver e fazer o quê?</summary><p>Cada usuário tem <strong>permissões individuais por checkbox</strong>, definidas na ficha dele em <strong>Usuários → Editar</strong>: quais movimentos de caixas e carrinhos pode lançar e quais telas administrativas acessa (DRE, cadastros, usuários, exclusões, logs). Os perfis (View, Usuário, Admin) são só modelos que preenchem o padrão — dá para ajustar caixa por caixa. Apenas <strong>Dev</strong> tem sempre acesso total.</p></details>
+    </div>
+
+    <!-- Movimentos -->
+    <div id="help-movimentos" class="help-section">
+      <h3>Guia de Movimentos</h3>
+      <div class="section-title" style="margin-top:0">📦 Caixas</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:24px">
+        {% for mov, desc in [('Envio CD→Loja','Envia caixas do CD para a loja. Gera pendência de retorno.'),('Retorno Loja→CD','Loja devolve caixas ao CD.'),('Perda na Loja','Caixa perdida. Desconta R$ 440 do DRE da loja.'),('Perda no CD','Caixa perdida no CD. Abate saldo sem cobrar a loja.'),('Compra','Aquisição de novas caixas. Entra direto no saldo do CD.')] %}
+        <div style="padding:14px 18px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-hover)">
+          <div style="font-weight:600;font-size:.83rem;color:var(--brand-primary);margin-bottom:4px">{{ mov }}</div>
+          <div style="font-size:.77rem;color:var(--text-secondary)">{{ desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="section-title">🛒 Carrinhos</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+        {% for mov, desc in [('Envio CD→Loja','Envio permanente para a loja.'),('Empréstimo CD→Loja','Temporário. Loja fica devendo devolução.'),('Recebimento Loja→CD','Bom Estado → pronto. Danificado → fila de conserto.'),('Retorno Empréstimo Loja→CD','Devolução do empréstimo. Retorna ao saldo CD.'),('Envio Conserto','Envia danificados ao fornecedor.'),('Volta Conserto','Retorno do fornecedor. Bom → pronto. Sucata → baixado.'),('Compra','Novos carrinhos direto no saldo.'),('Venda CD→Loja','Venda definitiva. Sem pendência de retorno.')] %}
+        <div style="padding:14px 18px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-hover)">
+          <div style="font-weight:600;font-size:.83rem;color:var(--brand-primary);margin-bottom:4px">{{ mov }}</div>
+          <div style="font-size:.77rem;color:var(--text-secondary)">{{ desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="section-title" style="margin-top:20px">📉 Perda de Inventário — Exclusivo Admin/Dev</div>
+      <div style="padding:14px 18px;border:1px solid var(--danger-text,#e53e3e);border-radius:8px;background:var(--danger-bg,#fee2e2);margin-bottom:8px">
+        <div style="font-weight:600;font-size:.83rem;color:var(--danger-text,#c53030);margin-bottom:8px">Como usar — passo a passo</div>
+        <ol style="font-size:.77rem;color:var(--text-secondary);margin:0;padding-left:18px;line-height:2">
+          <li>Selecione <strong>Item = Carrinho</strong> + <strong>Movimento = Perda de Inventário</strong>.</li>
+          <li>Uma tabela com estoque do CD aparece dividida em: <strong>✅ Bom Estado (Prontos)</strong> e <strong>🔧 Danificado (Aguardando Conserto)</strong>.</li>
+          <li>Clique na linha do carrinho desaparecido. O estado é determinado pelo grupo clicado.</li>
+          <li>Informe a <strong>quantidade perdida</strong> — deve ser ≤ saldo atual daquele estado.</li>
+          <li>Preencha a Observação e clique em <strong>Salvar</strong>.</li>
+        </ol>
+        <div style="font-size:.75rem;color:var(--text-secondary);margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.1)">
+          <strong>Regras:</strong> subtrai de Prontos (Bom Estado) ou Danificados disponíveis (Danificado). Não gera pendência com loja. Não afeta caixas. Aparece em Lançamentos como <em>Perda de Inventário</em>. Saldo atualizado no Dashboard, Estoque CD e relatórios.
+        </div>
+      </div>
+    </div>
+
+    <!-- Dicas -->
+    <div id="help-dicas" class="help-section">
+      <h3>Dicas e Truques</h3>
+      <div class="tip help-item"><i data-lucide="lightbulb" size="20"></i> Ao selecionar item + modelo + movimento, o saldo disponível aparece automaticamente — sem abrir outra aba.</div>
+      <div class="tip help-item"><i data-lucide="lightbulb" size="20"></i> Passe o mouse sobre o ticker no topo para pausar as notificações e ler com calma.</div>
+      <div class="tip help-item"><i data-lucide="lightbulb" size="20"></i> Na aba Lançamentos, use os filtros de texto, tipo, loja e data para localizar movimentações rapidamente.</div>
+      <div class="tip help-item"><i data-lucide="lightbulb" size="20"></i> Após salvar um lançamento, o sistema permanece na tela de Novo Lançamento — ideal para registrar vários seguidos.</div>
+      <div class="tip help-item"><i data-lucide="lightbulb" size="20"></i> Use o Estoque CD para conferir saldos antes de lançar — especialmente "Em Conserto" e "Saldo Empréstimo".</div>
+      <div class="tip help-item"><i data-lucide="lightbulb" size="20"></i> Admins podem exportar em CSV pelo menu lateral para análise em Excel.</div>
+      <div class="tip help-item"><i data-lucide="lightbulb" size="20"></i> Para adicionar novas lojas ou modelos, acesse <strong>Inclusões</strong> no menu lateral.</div>
+    </div>
+
+    <!-- Suporte -->
+    <div id="help-suporte" class="help-section">
+      <h3>Contatos e Suporte</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
+
+        <div class="card" style="border:none;box-shadow:none;background:var(--bg-hover)">
+          <div class="card-header" style="background:transparent;border-bottom:1px solid var(--border-color)">
+            <h2 class="card-title"><i data-lucide="code-2" size="16" style="margin-right:6px;vertical-align:middle"></i>Desenvolvedor</h2>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:10px;font-size:.85rem">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="kpi-icon" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="user" size="16"></i></span>
+                <span><strong>Luccas Souza</strong></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="kpi-icon" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="linkedin" size="16"></i></span>
+                <a href="https://linkedin.com/in/luccas-souza7" target="_blank" style="color:var(--brand-primary)">linkedin.com/in/luccas-souza7</a>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="kpi-icon" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="mail" size="16"></i></span>
+                <a href="mailto:luccasnsouza1@gmail.com" style="color:var(--brand-primary)">luccasnsouza1@gmail.com</a>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="kpi-icon" style="width:32px;height:32px;flex-shrink:0"><i data-lucide="github" size="16"></i></span>
+                <a href="https://github.com/luccassouza" target="_blank" style="color:var(--brand-primary)">Portfólio no GitHub</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 style="margin-bottom:16px">Procedimentos Comuns</h4>
+          <div class="help-item">
+            <strong>Conta bloqueada</strong>
+            <p style="font-size:.84rem;color:var(--text-secondary);margin-top:4px">Admin acessa Usuários → Editar → Desbloquear Conta.</p>
+          </div>
+          <div class="help-item" style="margin-top:14px">
+            <strong>Adicionar nova loja ou item</strong>
+            <p style="font-size:.84rem;color:var(--text-secondary);margin-top:4px">Acesse <strong>Cadastros</strong> no menu lateral. Exige a permissão "Gerenciar cadastros" na sua ficha de usuário.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Histórico -->
+    <div id="help-historico" class="help-section">
+      <h3>Histórico de Versões</h3>
+      <div class="timeline">
+        <div class="timeline-item">
+          <h4>v2.0 — Permissões por Flags + Segurança (Jul 2026)</h4>
+          <p>Correção da Venda CD→Loja de carrinhos (registra a loja compradora). Permissões individuais por checkbox
+          (movimentos de caixas/carrinhos, DRE, cadastros, usuários, exclusões, logs) — perfil vira modelo editável e
+          somente Dev tem acesso total fixo. Username gerado automaticamente (primeiro.último). Performance: 1 conexão
+          de banco por clique (antes eram até 7). Proteção CSRF, limite de tentativas por IP, sessão expira em 12h,
+          logs de atividade com limpeza automática, e-mails mascarados e RLS habilitado no banco.</p>
+        </div>
+        <div class="timeline-item">
+          <h4>v1.4 — Layout StockFlow (Mar 2026)</h4>
+          <p>Redesign completo: sidebar branca, ticker animado, dark/light mode, KPI cards com ícones, gráfico de barras ApexCharts, aba Inclusões para gerenciar lojas e itens, mobile responsivo.</p>
+        </div>
+        <div class="timeline-item">
+          <h4>v1.3 — Controles Avançados (Mar 2026)</h4>
+          <p>Saldo disponível em tempo real no formulário. Filtros em todas as abas. Exportação CSV. Empréstimos com validação por loja e modelo. Tela de Carrinhos com 4 KPIs.</p>
+        </div>
+        <div class="timeline-item">
+          <h4>v1.2 — Permissões e Segurança (Mar 2026)</h4>
+          <p>Sistema de perfis view/usuario/admin/dev. Bloqueio automático após 5 tentativas. Sessão única por usuário. Audit log de exclusões.</p>
+        </div>
+        <div class="timeline-item">
+          <h4>v1.1 — Carrinhos e DRE (Mar 2026)</h4>
+          <p>Fluxo completo de conserto (envio/volta/sucata). Controle DRE com badge de pendências. Ticker de status na topbar. Dashboard com gráfico de estoque.</p>
+        </div>
+        <div class="timeline-item">
+          <h4>v1.0 — Versão Inicial (Mar 2026)</h4>
+          <p>Controle básico de caixas, lançamentos por loja, saldo por CD, login com autenticação bcrypt via Supabase.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+document.querySelectorAll('.help-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.help-nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(item.getAttribute('data-help')).classList.add('active');
+    lucide.createIcons();
+  });
+});
+function filterHelp(){
+  const q = document.getElementById('help-search').value.toLowerCase();
+  document.querySelectorAll('.help-item, details').forEach(el => {
+    el.style.display = !q || el.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Saldo de Carrinhos{% endblock %}
+{% block page_title %}Saldo de Carrinhos{% endblock %}
+{% block content %}
+
+<div class="kpi-grid">
+  <div class="kpi-card anim-fade-in">
+    <div class="kpi-header">
+      <span>CD deve às Lojas</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-amber"><i data-lucide="arrow-right-circle" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ lojas_cd_deve }}</div>
+    <div class="trend-neutral"><i data-lucide="store" size="14"></i> loja(s) aguardando envio</div>
+  </div>
+  <div class="kpi-card anim-fade-in" style="animation-delay:.1s">
+    <div class="kpi-header">
+      <span>Carrinhos a Enviar</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-amber"><i data-lucide="package-open" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ total_cd_deve }}</div>
+    <div class="trend-neutral"><i data-lucide="shopping-cart" size="14"></i> unidades pendentes de envio</div>
+  </div>
+  <div class="kpi-card anim-fade-in" style="animation-delay:.2s">
+    <div class="kpi-header">
+      <span>Lojas devem ao CD</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-red"><i data-lucide="repeat" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ lojas_emp_pend }}</div>
+    <div class="trend-neutral"><i data-lucide="clock" size="14"></i> loja(s) com empréstimo ativo</div>
+  </div>
+  <div class="kpi-card anim-fade-in" style="animation-delay:.3s">
+    <div class="kpi-header">
+      <span>Carrinhos Emprestados</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-red"><i data-lucide="arrow-left-right" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ total_loja_deve }}</div>
+    <div class="trend-neutral"><i data-lucide="shopping-cart" size="14"></i> unidades ainda não devolvidas</div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <input type="text" class="search-input" id="filtro-carr" placeholder="Pesquisar por loja ou produto...">
+  <button class="btn-secondary" onclick="document.getElementById('filtro-carr').value='';filtrarCarrinhos()">
+    <i data-lucide="x" size="15"></i> Limpar
+  </button>
+</div>
+
+<div class="section-title" style="margin-top:4px">
+  <i data-lucide="arrow-right-circle" size="14"></i> CD deve à Loja — Recebimentos com envio pendente
+</div>
+<div class="card" style="margin-bottom:24px">
+  <div style="overflow-x:auto">
+    <table id="tabela-cd-deve">
+      <thead>
+        <tr><th>Loja</th><th>Produto</th><th class="td-center">Qtd Pendente</th></tr>
+      </thead>
+      <tbody>
+        {% for r in cd_deve %}
+        <tr data-txt="{{ r[0]|lower }} {{ r[2]|lower }}">
+          <td style="font-size:.83rem"><strong>{{ r[0] }}</strong></td>
+          <td style="font-size:.8rem;color:var(--text-secondary)">{{ r[2] }}</td>
+          <td class="td-center"><span class="badge badge-warning">{{ r[3] }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="td-empty">✅ CD não deve nada às lojas no momento</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section-title">
+  <i data-lucide="repeat" size="14"></i> Lojas devem ao CD — Empréstimos pendentes de retorno
+</div>
+<div class="card">
+  <div style="overflow-x:auto">
+    <table id="tabela-loja-deve">
+      <thead>
+        <tr><th>Loja</th><th>Produto</th><th class="td-center">Qtd Pendente</th></tr>
+      </thead>
+      <tbody>
+        {% for r in loja_deve %}
+        <tr data-txt="{{ r[0]|lower }} {{ r[2]|lower }}">
+          <td style="font-size:.83rem"><strong>{{ r[0] }}</strong></td>
+          <td style="font-size:.8rem;color:var(--text-secondary)">{{ r[2] }}</td>
+          <td class="td-center"><span class="badge badge-danger">{{ r[3] }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="td-empty">✅ Nenhum empréstimo pendente</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+function filtrarCarrinhos(){
+  const txt = document.getElementById('filtro-carr').value.toLowerCase();
+  ['tabela-cd-deve','tabela-loja-deve'].forEach(id => {
+    document.querySelectorAll('#'+id+' tbody tr[data-txt]').forEach(row => {
+      row.style.display = (!txt || row.dataset.txt.includes(txt)) ? '' : 'none';
+    });
+  });
+}
+document.getElementById('filtro-carr').addEventListener('input', filtrarCarrinhos);
+</script>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+{% block page_title %}Logs de Atividade{% endblock %}
+{% block content %}
+
+<div class="filter-bar">
+  <input type="text" class="search-input" id="filtro-log" placeholder="Pesquisar usuário, ação, detalhe...">
+  <select class="form-select" id="filtro-acao" style="width:220px">
+    <option value="">Todas as ações</option>
+    <option value="login_ok">✅ Login OK</option>
+    <option value="login_falha">❌ Login falhou</option>
+    <option value="conta_bloqueada">🔒 Conta bloqueada</option>
+    <option value="rate_limit">🚦 Excesso de requisições</option>
+    <option value="logout">🚪 Logout</option>
+    <option value="usuario_criado">👤 Usuário criado</option>
+    <option value="usuario_editado">✏️ Usuário editado</option>
+    <option value="usuario_inativado">⛔ Usuário inativado</option>
+    <option value="senha_alterada">🔑 Senha alterada</option>
+    <option value="lancamento_excluido">🗑️ Lançamento excluído</option>
+    <option value="bloqueio_permissao">🛡️ Bloqueio de permissão</option>
+  </select>
+  <button class="btn-secondary" onclick="['filtro-log','filtro-acao'].forEach(id=>{document.getElementById(id).value='';});filtrarLogs()">
+    <i data-lucide="x" size="15"></i> Limpar
+  </button>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Registro de Ações</h2>
+    <span style="font-size:.78rem;color:var(--text-secondary)">
+      <span id="contador-logs"></span> · {{ total }} no banco (auto-limpo: máx. 5.000 registros / 90 dias)
+    </span>
+  </div>
+  <div style="overflow-x:auto">
+    <table id="tabela-logs">
+      <thead>
+        <tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Detalhe</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+        <tr data-texto="{{ (r[1] ~ ' ' ~ r[2] ~ ' ' ~ r[3])|lower }}" data-acao="{{ r[2] }}">
+          <td class="td-mono" style="font-size:.74rem;white-space:nowrap">{{ r[0] }}</td>
+          <td style="font-size:.8rem;font-weight:600">{{ r[1] }}</td>
+          <td>
+            <span class="badge {{ 'badge-danger' if r[2] in ('login_falha','conta_bloqueada','rate_limit','bloqueio_permissao','usuario_inativado','lancamento_excluido') else ('badge-success' if r[2]=='login_ok' else 'badge-neutral') }}" style="font-size:.68rem">
+              {{ r[2] }}
+            </span>
+          </td>
+          <td style="font-size:.76rem;color:var(--text-secondary);max-width:340px">{{ r[3] or '—' }}</td>
+          <td class="td-mono" style="font-size:.72rem;color:var(--text-secondary)">{{ r[4] or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="td-empty">Nenhum registro ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="info-box" style="margin-top:16px;font-size:.78rem">
+  📝 São registrados: logins (sucesso e falha), bloqueios, logout, criação/edição/inativação de usuários,
+  alterações de senha e permissões, exclusões de lançamento e tentativas sem permissão.
+  A tabela se limpa sozinha para não ocupar espaço no banco (máximo ~1 MB).
+</div>
+
+<script>
+lucide.createIcons();
+function filtrarLogs(){
+  const txt  = document.getElementById('filtro-log').value.toLowerCase();
+  const acao = document.getElementById('filtro-acao').value;
+  const rows = document.querySelectorAll('#tabela-logs tbody tr[data-texto]');
+  let vis = 0;
+  rows.forEach(row => {
+    const ok = (!txt || row.dataset.texto.includes(txt)) && (!acao || row.dataset.acao === acao);
+    row.style.display = ok ? '' : 'none';
+    if(ok) vis++;
+  });
+  const c = document.getElementById('contador-logs');
+  if(c) c.textContent = vis + ' registro(s) na tela';
+}
+['filtro-log','filtro-acao'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener(el.tagName==='SELECT'?'change':'input', filtrarLogs);
+});
+filtrarLogs();
+</script>
+{% endblock %}

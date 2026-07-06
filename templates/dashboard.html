@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Visão Geral{% endblock %}
+{% block content %}
+
+<!-- 4 KPI cards -->
+<div class="kpi-grid">
+  <div class="kpi-card anim-fade-in">
+    <div class="kpi-header">
+      <span>Caixas Disponíveis no CD</span>
+      <div class="kpi-icon anim-pulse-glow"><i data-lucide="box" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ saldo_cd_caixas }}</div>
+    <div class="trend-neutral"><i data-lucide="archive" size="14"></i> prontas para envio</div>
+  </div>
+
+  <div class="kpi-card anim-fade-in" style="animation-delay:.1s">
+    <div class="kpi-header">
+      <span>Lojas com Caixas Pendentes</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-amber"><i data-lucide="store" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ pend_caixas | length }}</div>
+    <div class="trend-{{ 'down' if pend_caixas|length > 0 else 'up' }}">
+      <i data-lucide="{{ 'alert-triangle' if pend_caixas|length > 0 else 'check' }}" size="14"></i>
+      {{ 'com caixas ainda não devolvidas' if pend_caixas|length > 0 else 'todas as lojas quitadas' }}
+    </div>
+  </div>
+
+  <div class="kpi-card anim-fade-in" style="animation-delay:.2s">
+    <div class="kpi-header">
+      <span>DRE Pendente — Caixas</span>
+      <div class="kpi-icon anim-pulse-glow {{ 'kpi-icon-red' if dre_pend > 0 else 'kpi-icon-green' }}">
+        <i data-lucide="{{ 'bell-ring' if dre_pend > 0 else 'check-circle' }}" size="20"></i>
+      </div>
+    </div>
+    <div class="kpi-value">{{ dre_pend }}</div>
+    <div class="trend-{{ 'down' if dre_pend > 0 else 'up' }}">
+      <i data-lucide="{{ 'alert-circle' if dre_pend > 0 else 'check' }}" size="14"></i>
+      {{ 'perda(s) sem notificar controladoria' if dre_pend > 0 else 'controladoria em dia' }}
+    </div>
+  </div>
+
+  <div class="kpi-card anim-fade-in" style="animation-delay:.3s">
+    <div class="kpi-header">
+      <span>Empréstimos Ativos — Carrinhos</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-purple"><i data-lucide="repeat" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ pend_emp | length }}</div>
+    <div class="trend-{{ 'down' if pend_emp|length > 0 else 'neutral' }}">
+      <i data-lucide="{{ 'clock' if pend_emp|length > 0 else 'check' }}" size="14"></i>
+      {{ 'empréstimo(s) pendente(s) de retorno' if pend_emp|length > 0 else 'nenhum empréstimo ativo' }}
+    </div>
+  </div>
+
+  <div class="kpi-card anim-fade-in" style="animation-delay:.4s">
+    <div class="kpi-header">
+      <span>Perda de Inventário — Carrinhos</span>
+      <div class="kpi-icon anim-pulse-glow {{ 'kpi-icon-red' if perda_inv.unid > 0 else 'kpi-icon-green' }}">
+        <i data-lucide="trending-down" size="20"></i>
+      </div>
+    </div>
+    <div class="kpi-value">{{ perda_inv.unid }}</div>
+    <div class="trend-{{ 'down' if perda_inv.unid > 0 else 'neutral' }}">
+      <i data-lucide="calendar" size="14"></i>
+      {{ perda_inv.ultimos30 }} unid. nos últimos 30 dias · {{ perda_inv.lanc }} lançamento(s)
+    </div>
+  </div>
+</div>
+
+<!-- Linha 2: Caixas Pendências por Loja + DRE Recentes -->
+<div class="content-grid" style="grid-template-columns:1fr 1fr;margin-bottom:24px">
+
+  <div class="card anim-fade-in">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="box" size="16" style="margin-right:6px;vertical-align:middle"></i>Caixas — Pendências por Loja</h2>
+      <a href="{{ url_for('saldo_caixas') }}" class="btn-secondary btn-sm">Ver todas</a>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Loja</th><th class="td-center">Pendente</th></tr></thead>
+        <tbody>
+          {% for loja, saldo in pend_caixas %}
+          <tr>
+            <td style="font-size:.83rem">{{ loja }}</td>
+            <td class="td-center"><span class="badge badge-danger">{{ saldo }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="2" class="td-empty">✅ Nenhuma pendência de caixas</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card anim-fade-in" style="animation-delay:.1s">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="file-text" size="16" style="margin-right:6px;vertical-align:middle"></i>DRE — Perdas Recentes</h2>
+      {% if session.user.perfil != 'usuario' %}
+      <a href="{{ url_for('dre_lista') }}" class="btn-secondary btn-sm">
+        Ver todas{% if dre_pend > 0 %} <span class="badge-count">{{ dre_pend }}</span>{% endif %}
+      </a>
+      {% endif %}
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Data</th><th>Loja</th><th class="td-center">Qtd</th><th class="td-right">Valor</th><th class="td-center">DRE</th></tr></thead>
+        <tbody>
+          {% for r in dre_recentes %}
+          <tr class="{{ '' if r[5] else 'row-danger' }}">
+            <td style="font-size:.72rem;color:var(--text-secondary);white-space:nowrap">{{ r[1][:16] }}</td>
+            <td style="font-size:.78rem">{{ r[2] }}</td>
+            <td class="td-center"><span class="badge badge-danger">{{ r[3] }}</span></td>
+            <td class="td-right" style="font-size:.8rem;font-weight:600">R$ {{ '%.0f'|format(r[4]) }}</td>
+            <td class="td-center">
+              {% if r[5] %}<span class="badge badge-success" style="font-size:.68rem"><i data-lucide="check" size="10"></i> Notif.</span>
+              {% else %}<span class="badge badge-danger" style="font-size:.68rem"><i data-lucide="x" size="10"></i> Pend.</span>{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="td-empty">Nenhuma perda registrada</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Linha 3: Carrinhos Prontos no CD (gráfico - full width) -->
+<div class="card anim-fade-in" style="margin-bottom:24px">
+  <div class="card-header">
+    <h2 class="card-title"><i data-lucide="shopping-cart" size="16" style="margin-right:6px;vertical-align:middle"></i>Carrinhos Prontos no CD</h2>
+    <a href="{{ url_for('estoque_cd') }}" class="btn-secondary btn-sm">Ver estoque</a>
+  </div>
+  <div style="padding:16px 20px"><div id="chart-carrinhos"></div></div>
+</div>
+
+<!-- Linha 4: Empréstimos + CD deve às lojas -->
+<div class="content-grid" style="grid-template-columns:1fr 1fr;margin-bottom:24px">
+
+  <div class="card anim-fade-in">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="repeat" size="16" style="margin-right:6px;vertical-align:middle"></i>Carrinhos Emprestados às Lojas</h2>
+      <a href="{{ url_for('saldo_carrinhos') }}" class="btn-secondary btn-sm">Ver todos</a>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Loja</th><th>Modelo</th><th class="td-center">Qtd</th></tr></thead>
+        <tbody>
+          {% for loja, prod, pend in pend_emp %}
+          <tr>
+            <td style="font-size:.82rem"><strong>{{ loja }}</strong></td>
+            <td style="font-size:.74rem;color:var(--text-secondary)">{{ prod[:32] }}</td>
+            <td class="td-center"><span class="badge badge-warning">{{ pend }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="td-empty">✅ Nenhum empréstimo ativo</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card anim-fade-in" style="animation-delay:.1s">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="arrow-right-circle" size="16" style="margin-right:6px;vertical-align:middle"></i>CD deve às Lojas — Carrinhos</h2>
+      <a href="{{ url_for('saldo_carrinhos') }}" class="btn-secondary btn-sm">Ver todos</a>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Loja</th><th>Modelo</th><th class="td-center">Qtd</th></tr></thead>
+        <tbody>
+          {% for loja, prod, deve in cd_deve_dash %}
+          <tr>
+            <td style="font-size:.82rem"><strong>{{ loja }}</strong></td>
+            <td style="font-size:.74rem;color:var(--text-secondary)">{{ prod[:32] }}</td>
+            <td class="td-center"><span class="badge badge-info">{{ deve }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="td-empty">✅ CD sem pendências com as lojas</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Linha 5: Últimas Movimentações (full width) -->
+<div class="card anim-fade-in">
+  <div class="card-header">
+    <h2 class="card-title"><i data-lucide="clock" size="16" style="margin-right:6px;vertical-align:middle"></i>Últimas Movimentações</h2>
+    <a href="{{ url_for('lancamentos') }}" class="btn-secondary btn-sm">Ver todas</a>
+  </div>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Data/Hora</th><th>Loja</th><th>Item</th>
+          <th>Produto</th><th>Movimento</th><th>Qtd</th><th>Estado</th><th>Responsável</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in ultimos %}
+        <tr>
+          <td class="td-mono">{{ r[0] }}</td>
+          <td style="font-size:.76rem;color:var(--text-secondary);white-space:nowrap">{{ r[1] }}</td>
+          <td style="font-size:.78rem">{{ r[2] or '—' }}</td>
+          <td><span class="badge badge-neutral">{{ r[3] }}</span></td>
+          <td style="font-size:.74rem;color:var(--text-secondary)">{{ r[4][:28] }}</td>
+          <td><span class="badge-mov">{{ r[5] }}</span></td>
+          <td class="td-center"><strong>{{ r[6] }}</strong></td>
+          <td>
+            {% if r[7] and r[7] != '—' %}
+            <span class="badge {{ 'badge-danger' if r[7]=='Danificado' else ('badge-success' if r[7]=='Bom Estado' else 'badge-neutral') }}" style="font-size:.68rem">{{ r[7][:10] }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:.76rem">{{ r[8] }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="td-empty">Nenhum lançamento ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+(function(){
+  var labels = {{ est_carr | map(attribute=1) | list | tojson }};
+  var values = {{ est_carr | map(attribute=2) | list | tojson }};
+  if (!labels.length) {
+    document.getElementById('chart-carrinhos').innerHTML =
+      '<p style="text-align:center;padding:32px;color:var(--text-secondary);font-size:.84rem">Nenhum carrinho em estoque.</p>';
+    return;
+  }
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var tc = isDark ? '#94a3b8' : '#64748b';
+  new ApexCharts(document.querySelector('#chart-carrinhos'), {
+    series: [{ name: 'Prontos', data: values }],
+    chart: {
+      type: 'bar',
+      height: Math.max(180, labels.length * 32),
+      fontFamily: 'Inter,sans-serif',
+      toolbar: { show: false },
+      background: 'transparent'
+    },
+    colors: ['#2563eb'],
+    plotOptions: { bar: { horizontal: true, borderRadius: 4, dataLabels: { position: 'top' } } },
+    dataLabels: { enabled: true, offsetX: 24, style: { fontSize: '11px', colors: [tc] } },
+    xaxis: { categories: labels, labels: { style: { colors: tc, fontSize: '11px' } } },
+    yaxis: { labels: { style: { colors: tc, fontSize: '11px' } } },
+    grid: { borderColor: isDark ? 'rgba(51,65,85,.5)' : 'rgba(226,232,240,.8)', strokeDashArray: 4 },
+    theme: { mode: isDark ? 'dark' : 'light' },
+    tooltip: { theme: isDark ? 'dark' : 'light' }
+  }).render();
+})();
+</script>
+{% endblock %}

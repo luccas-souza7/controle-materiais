@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Novo Usuário{% endblock %}
+{% block page_title %}Novo Usuário{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="{{ url_for('usuarios') }}" class="btn-secondary"><i data-lucide="arrow-left" size="15"></i> Voltar</a>
+</div>
+
+{% if error %}
+<div class="alert alert-error"><i data-lucide="alert-circle" size="16"></i> {{ error }}</div>
+{% endif %}
+
+<form method="POST" id="form-usuario">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="edit-grid">
+
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i data-lucide="user-plus" size="18" style="margin-right:8px;vertical-align:middle"></i>Dados do Usuário</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Nome completo <span class="req">*</span></label>
+          <input type="text" name="nome" id="inp-nome" required minlength="3" maxlength="100"
+                 class="form-input" placeholder="Ex: João da Silva" oninput="previewUsername()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username (login) — gerado automaticamente</label>
+          <input type="text" id="preview-username" class="form-input" readonly
+                 placeholder="primeiro.ultimo" style="background:var(--bg-hover);color:var(--text-secondary)">
+          <div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px">
+            Formato: primeiro.último nome, sem acentos. Se já existir, o sistema acrescenta um número.
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail <span style="font-size:.72rem;color:var(--text-secondary)">(opcional, pode repetir)</span></label>
+          <input type="email" name="email" maxlength="100" class="form-input" placeholder="joao@empresa.com.br">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha <span class="req">*</span></label>
+          <input type="password" name="senha" required minlength="8" maxlength="100"
+                 class="form-input" placeholder="Mínimo 8 caracteres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Setor</label>
+          <select name="setor" class="form-select">
+            <option value="">— Sem setor —</option>
+            {% for s in setores %}
+            <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Perfil de Acesso <span class="req">*</span></label>
+          <select name="perfil" id="sel-perfil" required class="form-select" onchange="aplicarPreset()">
+            <option value="usuario">🟡 Usuário — lançamentos do dia a dia</option>
+            <option value="view">🔵 View — somente visualização</option>
+            <option value="admin">🟠 Administrador — tudo liberado por padrão</option>
+            {% if eu_sou_dev %}<option value="dev">🔴 Dev — acesso total (não configurável)</option>{% endif %}
+          </select>
+          <div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px">
+            O perfil preenche as permissões ao lado com um padrão — você pode ajustar caixa por caixa.
+            Somente <strong>Dev</strong> sempre pode tudo.
+          </div>
+        </div>
+        <div class="form-actions">
+          <a href="{{ url_for('usuarios') }}" class="btn-secondary">Cancelar</a>
+          <button type="submit" class="btn-primary"><i data-lucide="user-plus" size="15"></i> Criar Usuário</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Permissões -->
+  <div style="display:flex;flex-direction:column;gap:20px" id="painel-permissoes">
+    {% include "_permissoes_form.html" %}
+  </div>
+
+</div>
+</form>
+
+<script>
+window.PRESETS = {{ presets | tojson }};
+lucide.createIcons();
+
+function previewUsername() {
+  const nome = document.getElementById('inp-nome').value.trim();
+  const partes = nome.split(/\s+/).filter(Boolean);
+  const slug = s => s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+  let u = '';
+  if (partes.length === 1) u = slug(partes[0]);
+  else if (partes.length > 1) u = slug(partes[0]) + '.' + slug(partes[partes.length - 1]);
+  document.getElementById('preview-username').value = u;
+}
+
+function aplicarPreset() {
+  const perfil = document.getElementById('sel-perfil').value;
+  const painel = document.getElementById('painel-permissoes');
+  const avisoDev = document.getElementById('aviso-dev');
+  const secoes = document.getElementById('secoes-permissoes');
+  if (perfil === 'dev') {
+    if (avisoDev) avisoDev.style.display = '';
+    if (secoes) secoes.style.display = 'none';
+    return;
+  }
+  if (avisoDev) avisoDev.style.display = 'none';
+  if (secoes) secoes.style.display = '';
+  const p = window.PRESETS[perfil];
+  if (!p) return;
+  document.querySelectorAll('input[name="perm_caixas"]').forEach(c => { c.checked = p.caixas.includes(c.value); });
+  document.querySelectorAll('input[name="perm_carrinhos"]').forEach(c => { c.checked = p.carrinhos.includes(c.value); });
+  Object.keys(p.telas || {}).forEach(flag => {
+    const el = document.querySelector('input[name="perm_tela_' + flag + '"]');
+    if (el) el.checked = !!p.telas[flag];
+  });
+}
+
+document.addEventListener('DOMContentLoaded', aplicarPreset);
+</script>
+{% endblock %}

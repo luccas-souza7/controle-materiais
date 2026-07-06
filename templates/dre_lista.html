@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Controle DRE{% endblock %}
+{% block page_title %}Controle DRE{% endblock %}
+{% block content %}
+
+<div class="kpi-grid">
+  <div class="kpi-card anim-fade-in">
+    <div class="kpi-header">
+      <span>Pendentes</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-red"><i data-lucide="bell-ring" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ dre | selectattr(5,'equalto',False) | list | length }}</div>
+    <div class="trend-down"><i data-lucide="alert-circle" size="14"></i> sem notificação</div>
+  </div>
+  <div class="kpi-card anim-fade-in" style="animation-delay:.1s">
+    <div class="kpi-header">
+      <span>Notificados</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-green"><i data-lucide="check-circle" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ dre | selectattr(5,'equalto',True) | list | length }}</div>
+    <div class="trend-up"><i data-lucide="check" size="14"></i> controladoria avisada</div>
+  </div>
+  <div class="kpi-card anim-fade-in" style="animation-delay:.2s">
+    <div class="kpi-header">
+      <span>Valor Total</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-amber"><i data-lucide="dollar-sign" size="20"></i></div>
+    </div>
+    <div class="kpi-value" style="font-size:1.5rem">R$ {{ '%.0f'|format(dre | sum(attribute=4)) }}</div>
+    <div class="trend-neutral"><i data-lucide="trending-down" size="14"></i> total a abater</div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <input type="text" class="search-input" id="filtro-dre-loja" placeholder="Pesquisar por loja...">
+  <select class="form-select" id="filtro-dre-notif" style="width:200px">
+    <option value="">Todos os status</option>
+    <option value="nao">❌ Não notificados</option>
+    <option value="sim">✅ Notificados</option>
+  </select>
+  <button class="btn-secondary" onclick="document.getElementById('filtro-dre-loja').value='';document.getElementById('filtro-dre-notif').value='';filtrarDre()">
+    <i data-lucide="x" size="15"></i> Limpar
+  </button>
+  <a href="{{ url_for('saldo_caixas') }}" class="btn-secondary" style="margin-left:auto">
+    <i data-lucide="arrow-left" size="15"></i> Saldo Caixas
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Perdas na Loja — Registro DRE</h2>
+    <span id="contador-dre" style="font-size:.78rem;color:var(--text-secondary)"></span>
+  </div>
+  <div style="overflow-x:auto">
+    <table id="tabela-dre">
+      <thead>
+        <tr>
+          <th>#</th><th>Data</th><th>Loja</th>
+          <th class="td-center">Qtd</th>
+          <th class="td-right">Vlr. Abate</th>
+          <th class="td-center">Notificado</th>
+          <th>Observação DRE</th>
+          <th class="td-center">Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in dre %}
+        <tr class="{{ '' if r[5] else 'row-danger' }}"
+            data-loja="{{ r[2]|lower if r[2] else '' }}"
+            data-notif="{{ 'sim' if r[5] else 'nao' }}">
+          <td class="td-mono">{{ r[0] }}</td>
+          <td style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap">{{ r[1] }}</td>
+          <td><strong style="font-size:.83rem">{{ r[2] }}</strong></td>
+          <td class="td-center"><span class="badge badge-danger">{{ r[3] }}</span></td>
+          <td class="td-right"><strong>R$ {{ '%.2f'|format(r[4]) }}</strong></td>
+          <td class="td-center">
+            {% if r[5] %}
+            <span class="badge badge-success"><i data-lucide="check" size="11"></i> Sim</span>
+            {% else %}
+            <span class="badge badge-danger"><i data-lucide="x" size="11"></i> Não</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.78rem;color:var(--text-secondary)">{{ r[6] or '—' }}</td>
+          <td class="td-center">
+            <a href="{{ url_for('dre_detalhe', lan_id=r[0]) }}" class="btn-mini">
+              <i data-lucide="arrow-right" size="13"></i> Ver
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="td-empty">Nenhuma perda na loja registrada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+function filtrarDre(){
+  const txt   = document.getElementById('filtro-dre-loja').value.toLowerCase();
+  const notif = document.getElementById('filtro-dre-notif').value;
+  const rows  = document.querySelectorAll('#tabela-dre tbody tr[data-loja]');
+  let vis = 0;
+  rows.forEach(row => {
+    const ok = (!txt || row.dataset.loja.includes(txt))
+            && (!notif || row.dataset.notif === notif);
+    row.style.display = ok ? '' : 'none';
+    if(ok) vis++;
+  });
+  const c = document.getElementById('contador-dre');
+  if(c) c.textContent = vis + ' registro(s)';
+}
+document.getElementById('filtro-dre-loja').addEventListener('input', filtrarDre);
+document.getElementById('filtro-dre-notif').addEventListener('change', filtrarDre);
+filtrarDre();
+</script>
+{% endblock %}

@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}Novo Lançamento{% endblock %}
+{% block page_title %}Novo Lançamento{% endblock %}
+{% block content %}
+
+{% if erro %}
+<div class="alert alert-error"><i data-lucide="alert-circle" size="16"></i> {{ erro }}</div>
+{% endif %}
+
+<div class="nl-grid">
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="plus-circle" size="18" style="margin-right:8px;vertical-align:middle"></i>Registrar Movimentação</h2>
+      <span style="font-size:.78rem;color:var(--text-secondary)">Campos aparecem conforme o tipo selecionado</span>
+    </div>
+    <div class="card-body">
+      <form method="POST" id="formLancamento">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Item <span class="req">*</span></label>
+            <select name="item" required id="sel-item" class="form-select">
+              <option value="">Selecione...</option>
+              <option value="Caixa">📦 Caixa</option>
+              <option value="Carrinho">🛒 Carrinho</option>
+            </select>
+          </div>
+          <div class="form-group" id="row-produto" style="display:none">
+            <label class="form-label" id="label-produto">Modelo <span class="req">*</span></label>
+            <select name="produto_codigo" id="sel-produto" class="form-select">
+              <option value="">Selecione o modelo...</option>
+            </select>
+            <input type="hidden" name="produto_descricao" id="inp-prod-desc">
+          </div>
+        </div>
+
+        <div id="row-tipo" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Tipo de Movimento <span class="req">*</span></label>
+            <select name="tipo_movimento" required id="sel-tipo" class="form-select">
+              <option value="">Selecione o movimento...</option>
+            </select>
+            <div id="mov-tooltip" class="mov-tooltip" style="display:none"></div>
+          </div>
+        </div>
+
+        <div id="saldo-box"></div>
+
+        <div id="row-loja" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Loja <span class="req">*</span></label>
+            <select name="loja" id="sel-loja" class="form-select">
+              <option value="">Selecione a loja...</option>
+              {% for l in lojas %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- ── SEÇÃO TROCA DE CARRINHO ────────────────────────── -->
+        <div id="row-troca" style="display:none">
+          <div style="background:var(--bg-hover);border:2px solid var(--brand-primary);border-radius:10px;padding:16px;margin-bottom:16px">
+
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0" id="troca-toggle-label">
+              <div class="troca-toggle-wrap">
+                <input type="checkbox" id="chk-troca" style="display:none">
+                <div class="troca-toggle-btn" id="troca-toggle-visual">
+                  <div class="troca-toggle-knob"></div>
+                </div>
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:.88rem;color:var(--text-primary)">
+                  <i data-lucide="arrow-left-right" size="14" style="vertical-align:middle;margin-right:4px"></i>
+                  Fazer Troca (enviar carrinho diferente)
+                </div>
+                <div style="font-size:.74rem;color:var(--text-secondary);margin-top:2px">
+                  Quando a loja devolve um modelo e o CD envia outro em substituição
+                </div>
+              </div>
+            </label>
+
+            <div id="troca-campos" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color)">
+              <div class="alert alert-warn" style="margin-bottom:14px;font-size:.82rem">
+                <i data-lucide="info" size="15"></i>
+                <span>
+                  <strong>Como funciona:</strong> Selecione o modelo que <u>veio da loja</u> (para abater a dívida).
+                  O modelo selecionado acima é o que <u>será enviado</u> à loja.
+                </span>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <i data-lucide="arrow-down-circle" size="14" style="vertical-align:middle;color:var(--warning-text)"></i>
+                  Carrinho Recebido da Loja <span class="req">*</span>
+                  <span style="font-size:.72rem;color:var(--text-secondary)">(abate a dívida do CD)</span>
+                </label>
+                <select id="sel-troca-entrada" class="form-select" onchange="onTrocaEntradaChange()">
+                  <option value="">Selecione o modelo recebido...</option>
+                </select>
+                <input type="hidden" name="troca_modelo_codigo" id="inp-troca-mcod">
+                <input type="hidden" name="troca_modelo_descricao" id="inp-troca-mdesc">
+                <input type="hidden" name="troca_flag" id="inp-troca-flag" value="0">
+              </div>
+              <div id="saldo-box-troca" style="display:none;margin-bottom:12px"></div>
+              <div id="troca-resumo" style="display:none;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:8px;padding:12px;font-size:.82rem">
+                <div style="font-weight:600;margin-bottom:8px;color:var(--text-primary)">📋 Resumo da Troca</div>
+                <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center">
+                  <div style="background:var(--warning-bg,#fef3c7);border-radius:6px;padding:8px">
+                    <div style="font-size:.7rem;color:var(--warning-text,#92400e);font-weight:600;margin-bottom:3px">⬇ RECEBIDO DA LOJA</div>
+                    <div id="resumo-entrada" style="font-weight:500;color:var(--text-primary)">—</div>
+                  </div>
+                  <div style="text-align:center;color:var(--text-secondary)">⇄</div>
+                  <div style="background:var(--success-bg,#d1fae5);border-radius:6px;padding:8px">
+                    <div style="font-size:.7rem;color:var(--success-text,#065f46);font-weight:600;margin-bottom:3px">⬆ ENVIADO À LOJA</div>
+                    <div id="resumo-saida" style="font-weight:500;color:var(--text-primary)">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- ── FIM SEÇÃO TROCA ──────────────────────────────── -->
+
+        <!-- ── SEÇÃO PERDA DE INVENTÁRIO ───────────────────── -->
+        <div id="row-perda-inv" style="display:none;margin-bottom:16px">
+          <div style="background:var(--bg-hover);border:2px solid var(--danger-text,#e53e3e);border-radius:10px;padding:16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <i data-lucide="trending-down" size="16" style="color:var(--danger-text,#e53e3e)"></i>
+              <span style="font-weight:600;font-size:.9rem;color:var(--danger-text,#e53e3e)">Perda de Inventário — Carrinhos no CD</span>
+            </div>
+            <div class="alert alert-warn" style="font-size:.8rem;margin-bottom:12px">
+              <i data-lucide="alert-triangle" size="14"></i>
+              <span>Selecione o carrinho perdido na tabela abaixo. Apenas Admin/Dev. O saldo será subtraído imediatamente.</span>
+            </div>
+            <div id="perda-inv-content">
+              <p style="color:var(--text-secondary);font-size:.83rem">⏳ Carregando estoque...</p>
+            </div>
+            <div id="perda-inv-detalhe" style="display:none"></div>
+          </div>
+        </div>
+        <!-- ── FIM SEÇÃO PERDA DE INVENTÁRIO ───────────────── -->
+
+        <div class="form-grid" id="row-qtd" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Quantidade <span class="req">*</span></label>
+            <input type="number" name="qtd" min="1" id="inp-qtd" class="form-input" placeholder="0">
+          </div>
+          <div class="form-group" id="row-estado" style="display:none">
+            <label class="form-label">Estado</label>
+            <select name="estado" id="sel-estado" class="form-select"><option value="">Selecione...</option></select>
+          </div>
+        </div>
+
+        <div id="row-dre" style="display:none">
+          <div class="alert alert-warn">
+            <i data-lucide="alert-triangle" size="16"></i>
+            <span><strong>Perda na Loja</strong> — Será descontado R$ 440,00 por caixa no DRE da loja.</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Valor Total Abate DRE (R$)</label>
+              <input type="number" name="vlr_abate_dre" step="0.01" min="0" id="inp-vlr-abate" class="form-input" readonly placeholder="Calculado automaticamente">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Controladoria foi notificada? <span class="req">*</span></label>
+              <select name="dre_notificado_inicial" id="sel-dre-notif" required class="form-select">
+                <option value="N">❌ Não ainda</option>
+                {% if pode_dre_editar %}<option value="S">✅ Sim</option>{% endif %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid" id="row-conserto" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Valor do Conserto (R$)</label>
+            <input type="number" name="vlr_conserto" step="0.01" min="0" class="form-input" placeholder="0.00">
+          </div>
+          <div></div>
+        </div>
+
+        <div id="row-final" style="display:none">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Responsável</label>
+              <input type="text" value="{{ session.user.nome }}" readonly class="form-input">
+              <input type="hidden" name="responsavel" value="{{ session.user.nome }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observação</label>
+              <input type="text" name="observacao" class="form-input" placeholder="Informação adicional (opcional)">
+            </div>
+          </div>
+          <div class="form-actions">
+            <a href="{{ url_for('lancamentos') }}" class="btn-secondary">
+              <i data-lucide="list" size="15"></i> Ver Lançamentos
+            </a>
+            <button type="submit" class="btn-primary" id="btn-salvar">
+              <i data-lucide="save" size="15"></i> Salvar Lançamento
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <div class="nl-side">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title"><i data-lucide="info" size="16" style="margin-right:6px;vertical-align:middle"></i>Guia Rápido</h2></div>
+      <div class="card-body" style="font-size:.8rem;color:var(--text-secondary)">
+        <div class="section-title" style="margin-top:0">📦 Caixas</div>
+        {% for mov, desc in mov_caixa_desc.items() %}{% if mov in mov_caixa %}
+        <div style="margin-bottom:10px"><strong style="font-size:.78rem;color:var(--text-primary)">{{ mov }}</strong><br>{{ desc }}</div>
+        {% endif %}{% endfor %}
+        <div class="section-title">🛒 Carrinhos</div>
+        {% for mov, desc in mov_carrinho_desc.items() %}{% if mov in mov_carrinho %}
+        <div style="margin-bottom:10px"><strong style="font-size:.78rem;color:var(--text-primary)">{{ mov }}</strong><br>{{ desc }}</div>
+        {% endif %}{% endfor %}
+        <div class="info-box" style="margin-top:16px;font-size:.76rem">
+          💡 O saldo disponível aparece automaticamente após selecionar item + modelo + movimento.<br><br>
+          🔄 <strong>Troca:</strong> Carrinho + Envio CD→Loja → ative o toggle.<br><br>
+          📉 <strong>Perda de Inventário:</strong> Carrinho + Perda de Inventário → selecione o modelo na tabela.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+.troca-toggle-wrap { flex-shrink:0 }
+.troca-toggle-btn {
+  width:44px; height:24px; background:var(--border-color);
+  border-radius:12px; position:relative; transition:background .2s; cursor:pointer;
+}
+.troca-toggle-btn.active { background:var(--brand-primary); }
+.troca-toggle-knob {
+  width:18px; height:18px; background:#fff; border-radius:50%;
+  position:absolute; top:3px; left:3px; transition:left .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+.troca-toggle-btn.active .troca-toggle-knob { left:23px; }
+.perda-inv-row:hover { background:var(--bg-hover); }
+.perda-inv-row:has(input:checked) { background:rgba(37,99,235,.07); }
+</style>
+
+<script>
+window.CAIXAS    = {{ caixas    | tojson }};
+window.CARRINHOS = {{ carrinhos | tojson }};
+window.PODE_DRE_NOTIF = {{ 'true' if pode_dre_editar else 'false' }};
+window.MOV_DISPONIVEIS = {
+  Caixa:    {{ mov_caixa    | tojson }},
+  Carrinho: {{ mov_carrinho | tojson }}
+};
+lucide.createIcons();
+</script>
+{% endblock %}

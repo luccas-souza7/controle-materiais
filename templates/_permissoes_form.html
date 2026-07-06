@@ -1,0 +1,66 @@
+{# Parcial das checkboxes de permissão — usado por novo_usuario.html e editar_usuario.html.
+   Vars: mov_caixa_todos, mov_carrinho_todos, telas_flags, telas_labels, perms_atual (opcional) #}
+
+<div class="card" id="aviso-dev" style="display:none">
+  <div class="card-body">
+    <div class="alert alert-warn" style="margin:0">
+      <i data-lucide="shield" size="16"></i>
+      <span><strong>Perfil Dev:</strong> acesso total ao sistema. As permissões abaixo não se aplicam.</span>
+    </div>
+  </div>
+</div>
+
+<div id="secoes-permissoes" style="display:flex;flex-direction:column;gap:20px">
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="box" size="16" style="margin-right:8px;vertical-align:middle"></i>Movimentos de Caixas</h2>
+      <span style="font-size:.74rem;color:var(--text-secondary)">O que este usuário pode lançar</span>
+    </div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+      {% for m in mov_caixa_todos %}
+      <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer">
+        <input type="checkbox" name="perm_caixas" value="{{ m }}"
+               {% if perms_atual and m in perms_atual.caixas %}checked{% endif %}
+               style="width:16px;height:16px;accent-color:var(--brand-primary)">
+        {{ m }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="shopping-cart" size="16" style="margin-right:8px;vertical-align:middle"></i>Movimentos de Carrinhos</h2>
+      <span style="font-size:.74rem;color:var(--text-secondary)">Inclui compra, venda, empréstimos etc.</span>
+    </div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+      {% for m in mov_carrinho_todos %}
+      <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer">
+        <input type="checkbox" name="perm_carrinhos" value="{{ m }}"
+               {% if perms_atual and m in perms_atual.carrinhos %}checked{% endif %}
+               style="width:16px;height:16px;accent-color:var(--brand-primary)">
+        {{ m }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="layout-grid" size="16" style="margin-right:8px;vertical-align:middle"></i>Telas e Ações</h2>
+      <span style="font-size:.74rem;color:var(--text-secondary)">Acessos administrativos</span>
+    </div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+      {% for flag in telas_flags %}
+      <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer">
+        <input type="checkbox" name="perm_tela_{{ flag }}"
+               {% if perms_atual and perms_atual.telas.get(flag) %}checked{% endif %}
+               style="width:16px;height:16px;accent-color:var(--brand-primary)">
+        {{ telas_labels[flag] }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>

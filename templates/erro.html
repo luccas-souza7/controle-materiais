@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Erro — Controle de Materiais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script>(function(){ const t=localStorage.getItem('cm-theme')||'light'; document.documentElement.setAttribute('data-theme',t); })();</script>
+</head>
+<body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg-body);overflow:auto;padding:24px">
+
+<div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:16px;padding:40px 36px;width:100%;max-width:600px;box-shadow:var(--shadow-lg)">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+    <div style="width:48px;height:48px;background:var(--danger-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <i data-lucide="alert-triangle" size="24" style="color:var(--danger-text)"></i>
+    </div>
+    <div>
+      <h1 style="font-size:1.3rem;font-weight:700;margin:0">Ops, algo deu errado</h1>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin:2px 0 0">Nenhum dado foi perdido. Tente novamente.</p>
+    </div>
+  </div>
+  <div class="alert alert-error" style="margin-bottom:20px">
+    <i data-lucide="x-circle" size="16"></i> <span>{{ erro }}</span>
+  </div>
+  {% if eh_dev and tb %}
+  <details style="margin-bottom:20px;border:1px solid var(--border-color);border-radius:8px;overflow:hidden">
+    <summary style="cursor:pointer;font-size:.84rem;font-weight:600;padding:12px 16px;background:var(--bg-hover);list-style:none;display:flex;align-items:center;gap:8px">
+      <i data-lucide="code" size="15"></i> Detalhes técnicos (visível só para Dev)
+    </summary>
+    <pre style="background:#0f172a;color:#94a3b8;padding:16px;margin:0;font-size:.72rem;white-space:pre-wrap;overflow:auto">{{ tb }}</pre>
+  </details>
+  {% endif %}
+  <a href="/" class="btn-secondary"><i data-lucide="arrow-left" size="16"></i> Voltar ao início</a>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

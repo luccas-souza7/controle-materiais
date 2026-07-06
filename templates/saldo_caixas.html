@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Saldo de Caixas{% endblock %}
+{% block page_title %}Saldo de Caixas{% endblock %}
+{% block content %}
+
+<div class="kpi-grid">
+  <div class="kpi-card anim-fade-in">
+    <div class="kpi-header">
+      <span>Saldo CD</span>
+      <div class="kpi-icon anim-pulse-glow"><i data-lucide="box" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ ticker.saldo_caixas }}</div>
+    <div class="trend-neutral"><i data-lucide="archive" size="14"></i> unidades no CD</div>
+  </div>
+  <div class="kpi-card anim-fade-in" style="animation-delay:.1s">
+    <div class="kpi-header">
+      <span>Lojas c/ Pendência</span>
+      <div class="kpi-icon anim-pulse-glow kpi-icon-amber"><i data-lucide="alert-triangle" size="20"></i></div>
+    </div>
+    <div class="kpi-value">{{ lojas | selectattr(5,'gt',0) | list | length }}</div>
+    <div class="trend-neutral"><i data-lucide="store" size="14"></i> com saldo em aberto</div>
+  </div>
+  {% if session.user.perfil != 'usuario' %}
+  <div class="kpi-card anim-fade-in" style="animation-delay:.2s">
+    <div class="kpi-header">
+      <span>DRE Pendente</span>
+      <div class="kpi-icon anim-pulse-glow {{ 'kpi-icon-red' if dre_pend > 0 else 'kpi-icon-green' }}">
+        <i data-lucide="{{ 'bell-ring' if dre_pend > 0 else 'check-circle' }}" size="20"></i>
+      </div>
+    </div>
+    <div class="kpi-value">{{ dre_pend }}</div>
+    <div class="trend-{{ 'down' if dre_pend > 0 else 'up' }}">
+      <i data-lucide="{{ 'alert-circle' if dre_pend > 0 else 'check' }}" size="14"></i>
+      {{ 'notificações em aberto' if dre_pend > 0 else 'tudo notificado' }}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="filter-bar">
+  <input type="text" class="search-input" id="filtro-loja" placeholder="Pesquisar por loja...">
+  <select class="form-select" id="filtro-status" style="width:180px">
+    <option value="">Todos os status</option>
+    <option value="pendente">⚠ Com pendência</option>
+    <option value="quitado">✅ Quitado</option>
+  </select>
+  <button class="btn-secondary" onclick="document.getElementById('filtro-loja').value='';document.getElementById('filtro-status').value='';filtrarLojas()">
+    <i data-lucide="x" size="15"></i> Limpar
+  </button>
+  {% if session.user.perfil != 'usuario' %}
+  <a href="{{ url_for('dre_lista') }}" class="btn-secondary" style="margin-left:auto">
+    <i data-lucide="bell" size="15"></i> Controle DRE
+    {% if dre_pend > 0 %}<span class="badge-count">{{ dre_pend }}</span>{% endif %}
+  </a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Saldo por Loja</h2>
+    <span id="contador-lojas" style="font-size:.78rem;color:var(--text-secondary)"></span>
+  </div>
+  <div style="overflow-x:auto">
+    <table id="tabela-caixas">
+      <thead>
+        <tr>
+          <th>Loja</th>
+          <th class="td-center">Enviado</th>
+          <th class="td-center">Retornado</th>
+          <th class="td-center">Perdas</th>
+          <th class="td-right">Vlr. Abate DRE</th>
+          <th class="td-center">Saldo Pendente</th>
+          <th class="td-center">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in lojas %}
+        <tr class="{{ 'row-danger' if r[5] > 0 else '' }}"
+            data-loja="{{ r[0]|lower }}" data-status="{{ 'pendente' if r[5] > 0 else 'quitado' }}">
+          <td><strong style="font-size:.85rem">{{ r[0] }}</strong></td>
+          <td class="td-center">{{ r[1] }}</td>
+          <td class="td-center td-ok">{{ r[2] }}</td>
+          <td class="td-center td-danger">{{ r[3] }}</td>
+          <td class="td-right">
+            {% if r[4] > 0 %}<span style="font-weight:600;color:var(--danger-text)">R$ {{ '%.2f'|format(r[4]) }}</span>{% else %}—{% endif %}
+          </td>
+          <td class="td-center">
+            <strong class="{{ 'td-danger' if r[5] > 0 else 'td-ok' }}" style="font-size:1.05rem">{{ r[5] }}</strong>
+          </td>
+          <td class="td-center">
+            {% if r[5] > 0 %}
+            <span class="badge badge-danger"><i data-lucide="alert-triangle" size="11"></i> Pendente</span>
+            {% else %}
+            <span class="badge badge-success"><i data-lucide="check" size="11"></i> Quitado</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="td-empty">Nenhum lançamento de caixas registrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="info-box" style="margin-top:16px">
+  <strong>Saldo Pendente</strong> = Enviado − Retornado − Perdas na Loja. Perdas no CD não afetam saldo das lojas.
+</div>
+
+<script>
+lucide.createIcons();
+function filtrarLojas(){
+  const txt    = document.getElementById('filtro-loja').value.toLowerCase();
+  const status = document.getElementById('filtro-status').value;
+  const rows   = document.querySelectorAll('#tabela-caixas tbody tr[data-loja]');
+  let vis = 0;
+  rows.forEach(row => {
+    const ok = (!txt || row.dataset.loja.includes(txt))
+            && (!status || row.dataset.status === status);
+    row.style.display = ok ? '' : 'none';
+    if(ok) vis++;
+  });
+  const c = document.getElementById('contador-lojas');
+  if(c) c.textContent = vis + ' loja(s)';
+}
+document.getElementById('filtro-loja').addEventListener('input', filtrarLojas);
+document.getElementById('filtro-status').addEventListener('change', filtrarLojas);
+filtrarLojas();
+</script>
+{% endblock %}

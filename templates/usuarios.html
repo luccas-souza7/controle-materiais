@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block page_title %}Usuários{% endblock %}
+{% block content %}
+
+<div class="filter-bar">
+  <input type="text" class="search-input" id="filtro-user" placeholder="Pesquisar nome, username...">
+  <select class="form-select" id="filtro-perfil" style="width:160px">
+    <option value="">Todos os perfis</option>
+    <option value="dev">🔴 Dev</option>
+    <option value="admin">🟠 Admin</option>
+    <option value="usuario">🟡 Usuário</option>
+    <option value="view">🔵 View</option>
+  </select>
+  <select class="form-select" id="filtro-status" style="width:170px">
+    <option value="">Todos os status</option>
+    <option value="ativo">✅ Ativos</option>
+    <option value="bloqueado">🔒 Bloqueados</option>
+    <option value="inativo">⛔ Inativos</option>
+  </select>
+  <button class="btn-secondary" onclick="['filtro-user','filtro-perfil','filtro-status'].forEach(id=>{document.getElementById(id).value='';});filtrarUsuarios()">
+    <i data-lucide="x" size="15"></i> Limpar
+  </button>
+  <a href="{{ url_for('novo_usuario') }}" class="btn-primary" style="margin-left:auto">
+    <i data-lucide="user-plus" size="15"></i> Novo Usuário
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Gerenciamento de Usuários</h2>
+    <span id="contador-users" style="font-size:.78rem;color:var(--text-secondary)"></span>
+  </div>
+  <div style="overflow-x:auto">
+    <table id="tabela-users">
+      <thead>
+        <tr>
+          <th>#</th><th>Username</th><th>Nome</th><th>Setor</th><th>E-mail</th>
+          <th class="td-center">Perfil</th><th class="td-center">Status</th>
+          <th class="td-center">Tentativas</th><th>Criado</th><th class="td-center">Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in lista %}
+        {# r: 0=id 1=user 2=email 3=nome 4=perfil 5=bloq 6=tent 7=criado 8=setor 9=inativo #}
+        <tr data-nome="{{ r[3]|lower }} {{ r[1]|lower }}"
+            data-perfil="{{ r[4] }}"
+            data-status="{{ 'inativo' if r[9] else ('bloqueado' if r[5] else 'ativo') }}"
+            style="{{ 'opacity:.5' if r[9] else '' }}">
+          <td class="td-mono">{{ r[0] }}</td>
+          <td style="font-weight:600;font-size:.84rem">{{ r[1] }}</td>
+          <td style="font-size:.84rem">{{ r[3] }}</td>
+          <td style="font-size:.78rem;color:var(--text-secondary)">{{ r[8] or '—' }}</td>
+          <td style="font-size:.76rem;color:var(--text-secondary)">{{ r[2] | mask_email }}</td>
+          <td class="td-center">
+            <span class="badge {{ 'badge-danger' if r[4]=='dev' else ('badge-warning' if r[4]=='admin' else ('badge-success' if r[4]=='usuario' else 'badge-purple')) }}">
+              {{ r[4] }}
+            </span>
+          </td>
+          <td class="td-center">
+            {% if r[9] %}
+            <span class="badge badge-neutral"><i data-lucide="ban" size="11"></i> Inativo</span>
+            {% elif r[5] %}
+            <span class="badge badge-danger"><i data-lucide="lock" size="11"></i> Bloqueado</span>
+            {% else %}
+            <span class="badge badge-success"><i data-lucide="check" size="11"></i> Ativo</span>
+            {% endif %}
+          </td>
+          <td class="td-center">
+            <span class="{{ 'td-danger' if r[6] >= 3 else '' }}" style="font-weight:600;font-size:.8rem">{{ r[6] }}/5</span>
+          </td>
+          <td class="td-mono" style="font-size:.76rem">{{ r[7] }}</td>
+          <td class="td-center">
+            {% if meu_perfil == 'dev' or (meu_perfil == 'admin' and r[4] != 'dev') %}
+            <a href="{{ url_for('editar_usuario', uid=r[0]) }}" class="btn-mini">
+              <i data-lucide="edit-2" size="12"></i> Editar
+            </a>
+            {% else %}
+            <span style="color:var(--text-secondary);font-size:.75rem">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="info-box" style="margin-top:16px">
+  <strong>dev</strong> — Acesso total sempre (não configurável). &nbsp;
+  <strong>admin / usuario / view</strong> — O perfil define o padrão, mas as permissões reais são as
+  checkboxes marcadas na ficha de cada usuário (movimentos de caixas/carrinhos, DRE, cadastros, usuários, exclusões, logs). &nbsp;
+  <strong>Inativo</strong> — Acesso totalmente bloqueado (colaborador desligado ou suspenso).
+</div>
+
+<script>
+lucide.createIcons();
+function filtrarUsuarios(){
+  const txt    = document.getElementById('filtro-user').value.toLowerCase();
+  const perf   = document.getElementById('filtro-perfil').value;
+  const status = document.getElementById('filtro-status').value;
+  const rows   = document.querySelectorAll('#tabela-users tbody tr[data-nome]');
+  let vis = 0;
+  rows.forEach(row => {
+    const ok = (!txt    || row.dataset.nome.includes(txt))
+            && (!perf   || row.dataset.perfil  === perf)
+            && (!status || row.dataset.status  === status);
+    row.style.display = ok ? '' : 'none';
+    if(ok) vis++;
+  });
+  const c = document.getElementById('contador-users');
+  if(c) c.textContent = vis + ' usuário(s)';
+}
+['filtro-user','filtro-perfil','filtro-status'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener(el.tagName==='SELECT'?'change':'input', filtrarUsuarios);
+});
+filtrarUsuarios();
+</script>
+{% endblock %}

@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuário{% endblock %}
+{% block page_title %}Editar Usuário{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <a href="{{ url_for('usuarios') }}" class="btn-secondary"><i data-lucide="arrow-left" size="15"></i> Voltar</a>
+</div>
+
+{% if error   %}<div class="alert alert-error"><i data-lucide="alert-circle" size="16"></i> {{ error }}</div>{% endif %}
+{% if sucesso %}<div class="alert alert-ok"><i data-lucide="check-circle" size="16"></i> {{ sucesso }}</div>{% endif %}
+
+{# usuario: 0=id 1=user 2=email 3=nome 4=perfil 5=bloq 6=tent 7=setor 8=inativo #}
+<div class="user-header-card" style="{{ 'opacity:.6' if usuario[8] else '' }}">
+  <div class="user-avatar">{{ usuario[3][0]|upper }}</div>
+  <div>
+    <div class="user-header-nome">{{ usuario[3] }}</div>
+    <div class="user-header-sub">@{{ usuario[1] }}{% if usuario[2] %} · {{ usuario[2] }}{% endif %}{% if usuario[7] %} · {{ usuario[7] }}{% endif %}</div>
+  </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="badge {{ 'badge-danger' if usuario[4]=='dev' else ('badge-warning' if usuario[4]=='admin' else ('badge-success' if usuario[4]=='usuario' else 'badge-purple')) }}">
+      {{ usuario[4] }}
+    </span>
+    {% if usuario[8] %}
+    <span class="badge badge-neutral"><i data-lucide="ban" size="11"></i> Inativo</span>
+    {% elif usuario[5] %}
+    <span class="badge badge-danger"><i data-lucide="lock" size="11"></i> Bloqueado</span>
+    {% else %}
+    <span class="badge badge-success"><i data-lucide="check" size="11"></i> Ativo</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if editando_a_si %}
+<div class="alert alert-warn" style="margin-bottom:16px">
+  <i data-lucide="info" size="15"></i>
+  <span>Você está editando a própria conta: nome, e-mail, setor e senha podem ser alterados,
+  mas <strong>perfil e permissões próprias não</strong> (outro administrador precisa fazer isso).</span>
+</div>
+{% endif %}
+
+<!-- Dados + Permissões (um único form) -->
+<form method="POST">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<input type="hidden" name="acao" value="salvar_dados">
+<div class="edit-grid">
+
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i data-lucide="user" size="16" style="margin-right:8px;vertical-align:middle"></i>Dados do Usuário</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Username (login)</label>
+          <input type="text" value="{{ usuario[1] }}" readonly class="form-input"
+                 style="background:var(--bg-hover);color:var(--text-secondary)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome completo</label>
+          <input type="text" name="nome" value="{{ usuario[3] }}" required minlength="3" maxlength="100" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" name="email" value="{{ usuario[2] }}" maxlength="100" class="form-input" placeholder="email@empresa.com.br">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Setor</label>
+          <select name="setor" class="form-select">
+            <option value="">— Sem setor —</option>
+            {% for s in setores %}
+            <option value="{{ s }}" {{ 'selected' if usuario[7]==s }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Perfil de acesso</label>
+          <select name="perfil" id="sel-perfil" class="form-select" onchange="aplicarPreset()"
+                  {{ 'disabled' if editando_a_si }}>
+            <option value="view"    {{ 'selected' if usuario[4]=='view'    }}>🔵 Somente Visualização</option>
+            <option value="usuario" {{ 'selected' if usuario[4]=='usuario' }}>🟡 Usuário</option>
+            <option value="admin"   {{ 'selected' if usuario[4]=='admin'   }}>🟠 Administrador</option>
+            {% if eu_sou_dev %}
+            <option value="dev"     {{ 'selected' if usuario[4]=='dev'     }}>🔴 Dev</option>
+            {% endif %}
+          </select>
+          {% if not editando_a_si %}
+          <div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px">
+            Trocar o perfil preenche as permissões ao lado com o padrão dele — ajuste como quiser antes de salvar.
+          </div>
+          {% endif %}
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary"><i data-lucide="save" size="15"></i> Salvar Dados e Permissões</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:20px" id="painel-permissoes"
+       {% if editando_a_si %}class="perm-travado"{% endif %}>
+    {% include "_permissoes_form.html" %}
+  </div>
+
+</div>
+</form>
+
+<div class="edit-grid" style="margin-top:20px">
+
+  <!-- Senha -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title"><i data-lucide="key" size="16" style="margin-right:8px;vertical-align:middle"></i>Alterar Senha</h2>
+    </div>
+    <div class="card-body">
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:16px">A sessão ativa será encerrada após a alteração.</p>
+      <form method="POST">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="acao" value="alterar_senha">
+        <div class="form-group">
+          <label class="form-label">Nova senha</label>
+          <input type="password" name="nova_senha" required minlength="8" maxlength="100" class="form-input" placeholder="Mínimo 8 caracteres">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-warn"><i data-lucide="key" size="15"></i> Alterar Senha</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Segurança + Status -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i data-lucide="shield" size="16" style="margin-right:8px;vertical-align:middle"></i>Segurança da Conta</h2>
+      </div>
+      <div class="card-body">
+
+        <div class="security-row">
+          <span class="security-label">Status da conta</span>
+          {% if usuario[8] %}
+          <span class="badge badge-neutral"><i data-lucide="ban" size="11"></i> Inativa</span>
+          {% elif usuario[5] %}
+          <span class="badge badge-danger"><i data-lucide="lock" size="11"></i> Bloqueada</span>
+          {% else %}
+          <span class="badge badge-success"><i data-lucide="check" size="11"></i> Ativa</span>
+          {% endif %}
+        </div>
+
+        <div class="security-row">
+          <span class="security-label">Tentativas de senha errada</span>
+          <span class="security-value {{ 'security-danger' if usuario[6] >= 3 else '' }}">{{ usuario[6] }} / 5</span>
+        </div>
+
+        <div class="security-bar-wrap" style="margin:12px 0 8px">
+          <div class="security-bar" style="width:{{ (usuario[6] / 5 * 100)|int }}%;background:{{ '#e53e3e' if usuario[6]>=5 else ('#ed8936' if usuario[6]>=3 else '#48bb78') }}"></div>
+        </div>
+
+        <p style="font-size:.75rem;color:var(--text-secondary);margin-bottom:16px">
+          {% if usuario[6] >= 5 %}⚠️ Limite atingido — conta bloqueada.
+          {% elif usuario[6] >= 3 %}⚠️ {{ 5 - usuario[6] }} tentativa(s) restante(s).
+          {% else %}Conta em situação normal.{% endif %}
+        </p>
+
+        {% if usuario[5] and not usuario[8] %}
+        <div class="alert alert-error" style="margin-bottom:14px">
+          <i data-lucide="lock" size="15"></i> Bloqueada após {{ usuario[6] }} tentativas incorretas.
+        </div>
+        <form method="POST">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="acao" value="desbloquear">
+          <button type="submit" class="btn-primary btn-full">
+            <i data-lucide="unlock" size="15"></i> Desbloquear Conta
+          </button>
+        </form>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Status Ativo / Inativo -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><i data-lucide="toggle-left" size="16" style="margin-right:8px;vertical-align:middle"></i>Status do Colaborador</h2>
+      </div>
+      <div class="card-body">
+        {% if usuario[8] %}
+        <div class="alert alert-error" style="margin-bottom:14px;font-size:.83rem">
+          <i data-lucide="ban" size="15"></i> Este colaborador está <strong>inativo</strong>. Ele não consegue acessar o sistema.
+        </div>
+        <form method="POST">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="acao" value="ativar">
+          <button type="submit" class="btn-primary btn-full">
+            <i data-lucide="check-circle" size="15"></i> Reativar Colaborador
+          </button>
+        </form>
+        {% else %}
+        <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:16px">
+          Use esta opção para colaboradores desligados ou suspensos. O acesso é encerrado imediatamente e a sessão é invalidada.
+        </p>
+        {% if (usuario[4] != 'dev' or eu_sou_dev) and not editando_a_si %}
+        <form method="POST" onsubmit="return confirm('⚠️ Inativar {{ usuario[3] }}?\n\nO colaborador perderá o acesso imediatamente.')">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="acao" value="inativar">
+          <button type="submit" class="btn-danger btn-full">
+            <i data-lucide="ban" size="15"></i> Inativar Colaborador
+          </button>
+        </form>
+        {% elif editando_a_si %}
+        <div class="info-box" style="font-size:.78rem">Você não pode inativar a própria conta.</div>
+        {% else %}
+        <div class="info-box" style="font-size:.78rem">Somente DEV pode inativar outros DEVs.</div>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.perm-travado { pointer-events:none; opacity:.55 }
+</style>
+
+<script>
+window.PRESETS = {{ presets | tojson }};
+lucide.createIcons();
+
+function aplicarPreset() {
+  const sel = document.getElementById('sel-perfil');
+  if (!sel) return;
+  const perfil = sel.value;
+  const avisoDev = document.getElementById('aviso-dev');
+  const secoes = document.getElementById('secoes-permissoes');
+  if (perfil === 'dev') {
+    if (avisoDev) avisoDev.style.display = '';
+    if (secoes) secoes.style.display = 'none';
+    return;
+  }
+  if (avisoDev) avisoDev.style.display = 'none';
+  if (secoes) secoes.style.display = '';
+  const p = window.PRESETS[perfil];
+  if (!p) return;
+  document.querySelectorAll('input[name="perm_caixas"]').forEach(c => { c.checked = p.caixas.includes(c.value); });
+  document.querySelectorAll('input[name="perm_carrinhos"]').forEach(c => { c.checked = p.carrinhos.includes(c.value); });
+  Object.keys(p.telas || {}).forEach(flag => {
+    const el = document.querySelector('input[name="perm_tela_' + flag + '"]');
+    if (el) el.checked = !!p.telas[flag];
+  });
+}
+
+// No carregamento NÃO aplica preset — mostra as permissões salvas do usuário.
+// Só esconde as seções se o perfil atual for dev.
+document.addEventListener('DOMContentLoaded', function() {
+  const sel = document.getElementById('sel-perfil');
+  if (sel && sel.value === 'dev') {
+    const avisoDev = document.getElementById('aviso-dev');
+    const secoes = document.getElementById('secoes-permissoes');
+    if (avisoDev) avisoDev.style.display = '';
+    if (secoes) secoes.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}

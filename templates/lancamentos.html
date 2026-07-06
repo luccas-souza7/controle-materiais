@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Lançamentos{% endblock %}
+{% block page_title %}Lançamentos{% endblock %}
+{% block content %}
+
+<div class="filter-bar">
+  <input type="text" class="search-input" id="filtro-texto" placeholder="Pesquisar loja, produto, movimento...">
+  <select class="form-select" id="filtro-item" style="width:140px">
+    <option value="">Todos os itens</option>
+    <option value="Caixa">📦 Caixa</option>
+    <option value="Carrinho">🛒 Carrinho</option>
+  </select>
+  <select class="form-select" id="filtro-tipo" style="width:210px">
+    <option value="">Todos os movimentos</option>
+    <option>Envio CD->Loja</option>
+    <option>Empréstimo CD->Loja</option>
+    <option>Recebimento Loja->CD</option>
+    <option>Retorno Loja->CD</option>
+    <option>Retorno Empréstimo Loja->CD</option>
+    <option>Envio Conserto</option>
+    <option>Volta Conserto</option>
+    <option>Perda na Loja</option>
+    <option>Perda no CD</option>
+    <option>Compra</option>
+    <option>Venda CD->Loja</option>
+    <option>Ganho de Inventário</option>
+  </select>
+  <select class="form-select" id="filtro-loja" style="width:190px">
+    <option value="">Todas as lojas</option>
+    {% for l in lojas %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
+  </select>
+  <input type="date" class="form-select" id="filtro-data" style="width:150px" title="Filtrar por data">
+  <button class="btn-secondary" onclick="limparFiltros()"><i data-lucide="x" size="15"></i> Limpar</button>
+  {% if pode_lancar() %}
+  <a href="{{ url_for('novo_lancamento') }}" class="btn-primary"><i data-lucide="plus" size="15"></i> Novo Lançamento</a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Histórico de Movimentações</h2>
+    <span id="contador" style="font-size:.78rem;color:var(--text-secondary)"></span>
+  </div>
+  <div style="overflow-x:auto">
+    <table id="tabela-lanc">
+      <thead>
+        <tr>
+          <th>#</th><th>Data/Hora</th><th>Loja</th><th>Item</th>
+          <th>Produto</th><th>Movimento</th><th>Qtd</th><th>Estado</th>
+          <th>Responsável</th><th>Observação</th>
+          {% if pode('lancamentos_excluir') %}<th>Ação</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+        {# r: 0=id 1=data_str(DD/MM/YYYY HH:MM) 2=loja 3=item 4=pcod 5=pdesc 6=tipo 7=qtd 8=estado 9=resp 10=abatedre 11=vlrabate 12=drenotif 13=dreobs 14=vlrcons 15=responsavel 16=obs #}
+        {# Converte DD/MM/YYYY para YYYY-MM-DD para o filtro de data #}
+        {% set data_iso = r[1][6:10] ~ '-' ~ r[1][3:5] ~ '-' ~ r[1][:2] %}
+        <tr id="row-{{ r[0] }}"
+            data-texto="{{ (r[2] or '') ~ ' ' ~ (r[5] or '') ~ ' ' ~ r[6] ~ ' ' ~ r[3] ~ ' ' ~ (r[16] or '') }}"
+            data-item="{{ r[3] }}"
+            data-tipo="{{ r[6] }}"
+            data-data="{{ data_iso }}"
+            data-loja="{{ r[2] or '' }}">
+          <td class="td-mono">{{ r[0] }}</td>
+          <td style="font-size:.76rem;color:var(--text-secondary);white-space:nowrap">{{ r[1] }}</td>
+          <td style="font-size:.78rem">{{ r[2] or '—' }}</td>
+          <td><span class="badge badge-neutral">{{ r[3] }}</span></td>
+          <td style="font-size:.74rem;color:var(--text-secondary)">{{ r[5] or r[4] or '—' }}</td>
+          <td><span class="badge-mov">{{ r[6] }}</span></td>
+          <td class="td-center"><strong>{{ r[7] }}</strong></td>
+          <td>
+            {% if r[8] and r[8] != '—' %}
+            <span class="badge {{ 'badge-danger' if r[8]=='Danificado' else ('badge-success' if r[8]=='Bom Estado' else 'badge-neutral') }}" style="font-size:.68rem">{{ r[8][:12] }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:.76rem">{{ r[15] or '—' }}</td>
+          <td style="font-size:.74rem;color:var(--text-secondary);max-width:160px">
+            {% if r[16] %}
+            <span title="{{ r[16] }}">{{ r[16][:40] }}{% if r[16]|length > 40 %}…{% endif %}</span>
+            {% else %}—{% endif %}
+          </td>
+          {% if pode('lancamentos_excluir') %}
+          <td class="td-center">
+            <button class="btn-del" onclick="deleteRow(event, {{ r[0] }})" title="Excluir">
+              <i data-lucide="x" size="14"></i>
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% else %}
+        <tr><td colspan="11" class="td-empty">Nenhum lançamento encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+
+function aplicarFiltros(){
+  const txt  = document.getElementById('filtro-texto').value.toLowerCase();
+  const item = document.getElementById('filtro-item').value;
+  const tipo = document.getElementById('filtro-tipo').value;
+  const data = document.getElementById('filtro-data').value; // YYYY-MM-DD
+  const loja = document.getElementById('filtro-loja').value;
+  const rows = document.querySelectorAll('#tabela-lanc tbody tr[id]');
+  let vis = 0;
+  rows.forEach(row => {
+    const ok = (!txt  || row.dataset.texto.toLowerCase().includes(txt))
+            && (!item || row.dataset.item === item)
+            && (!tipo || row.dataset.tipo === tipo)
+            && (!data || row.dataset.data === data)
+            && (!loja || row.dataset.loja === loja);
+    row.style.display = ok ? '' : 'none';
+    if(ok) vis++;
+  });
+  const c = document.getElementById('contador');
+  if(c) c.textContent = vis + ' registro(s)';
+}
+
+['filtro-texto','filtro-item','filtro-tipo','filtro-data','filtro-loja'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener(el.tagName==='SELECT'?'change':'input', aplicarFiltros);
+});
+
+function limparFiltros(){
+  ['filtro-texto','filtro-item','filtro-tipo','filtro-data','filtro-loja'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  aplicarFiltros();
+}
+
+function deleteRow(e, id){
+  e.preventDefault();
+  if(!confirm('Excluir este lançamento? Essa ação não pode ser desfeita.')) return;
+  const row = document.getElementById('row-' + id);
+  if(row){ row.style.opacity='0'; row.style.transition='opacity .3s'; }
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  fetch('/deletar-lancamento/' + id, { method:'POST', headers:{ 'X-CSRF-Token': csrf } })
+    .then(r => r.ok ? (row && row.remove()) : alert('Erro ao excluir.'))
+    .catch(() => alert('Erro de conexão.'));
+}
+
+aplicarFiltros();
+</script>
+{% endblock %}
