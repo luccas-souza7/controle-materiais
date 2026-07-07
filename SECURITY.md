@@ -1,6 +1,6 @@
 # Política de Segurança
 
-Projeto de portfólio — aplicação de demonstração com dados fictícios.
+Projeto de portfólio: aplicação de demonstração com dados fictícios.
 
 ## Medidas ativas
 
@@ -19,3 +19,6 @@ Projeto de portfólio — aplicação de demonstração com dados fictícios.
 
 - **Nome:** Luccas Souza
 - **E-mail:** luccasnsouza1@gmail.com
+- **Telefone:** +55 11 93201-8859
+- **LinkedIn:** https://linkedin.com/in/luccas-souza7
+- **GitHub:** https://github.com/luccas-souza7
