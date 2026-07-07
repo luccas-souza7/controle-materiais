@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Ferramentas locais de IA (não subir para o GitHub)
+.claude/
+.claude-flow/
+.mcp.json
+CLAUDE.local.md
